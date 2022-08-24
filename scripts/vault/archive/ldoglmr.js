@@ -1,28 +1,26 @@
 import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import { predictAddresses } from "../../utils/predictAddresses";
-import { setPendingRewardsFunctionName } from "../../utils/setPendingRewardsFunctionName";
 
 const {
   platforms: { stellaswap, beefyfinance },
   tokens: {
     STELLA: { address: STELLA },
     GLMR: { address: GLMR },
-    MAI: { address: MAI },
-    FRAXs: { address: FRAXs },
   },
 } = addressBook.moonbeam;
 
-const want = web3.utils.toChecksumAddress("0x015c6B2d98969e3bF066110769E53D734e48Ebf6");
+const LDO = web3.utils.toChecksumAddress("0x9Fda7cEeC4c18008096C2fE2B85F05dc300F94d0");
+const want = web3.utils.toChecksumAddress("0x00870B0e6994fFb142a91173a882d2F6a9a8Ac4a");
 
 const vaultParams = {
-  mooName: "Moo Stella FRAX-GLMR",
-  mooSymbol: "mooStellaFRAX-GLMR",
+  mooName: "Moo Stella LDO-GLMR",
+  mooSymbol: "mooStellaLDO-GLMR",
   delay: 21600,
 };
 
 const strategyParams = {
-  poolId: 18,
+  poolId: 25,
   want: want,
   chef: stellaswap.masterchefV1distributorV2,
   unirouter: stellaswap.router,
@@ -31,14 +29,13 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [STELLA, GLMR],
-  outputToLp0Route: [STELLA, GLMR, FRAXs],
+  outputToLp0Route: [STELLA, GLMR, LDO],
   outputToLp1Route: [STELLA, GLMR],
-  pendingRewardsFunctionName: "pendingStella",
 };
 
 const contractNames = {
   vault: "BeefyVaultV6",
-  strategy: "StrategyCommonChefLP",
+  strategy: "StrategyStellaMultiRewardsLP",
 };
 
 async function main() {
@@ -100,8 +97,6 @@ async function main() {
 
   console.log();
   console.log("Running post deployment");
-
-  await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
 
   await vault.transferOwnership(beefyfinance.vaultOwner);
   console.log(`Transfered Vault Ownership to ${beefyfinance.vaultOwner}`);

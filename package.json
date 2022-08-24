@@ -39,7 +39,7 @@
     "deploy:chain": "hardhat run scripts/infra/deployChain.js --network",
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
-    "flat-hardhat": "hardhat flatten contracts/BIFI/strategies/Moonbeam/StrategyStellaMultiRewardsLP.sol > tmp/flattened.sol",
+    "flat-hardhat": "hardhat flatten contracts/BIFI/strategies/Common/StrategyCommonChefLP.sol > tmp/flattened.sol",
     "flat": "bin/flatten.sh",
     "flat:chain": "bin/flattenChainContracts.sh",
     "abi-to-sol": "abi-to-sol",

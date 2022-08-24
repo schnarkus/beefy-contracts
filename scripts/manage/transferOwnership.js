@@ -9,7 +9,7 @@ const abi = ["function transferOwnership(address newOwner) public"];
 const newOwner = beefyfinance.strategyOwner;
 console.log("Transferring ownership to:", newOwner);
 
-const contracts = ["0x3b8cc0191FdCb6B022ecCeFeeF1EC8a66bF721Ff"];
+const contracts = ["0x1a9fda6626097E9DEd33204E485dEf332F2B665b", "0x008Af3DcEbDe6AfE80bDd4e3E37b6E26b506a781"];
 
 async function main() {
   for (const address of contracts) {

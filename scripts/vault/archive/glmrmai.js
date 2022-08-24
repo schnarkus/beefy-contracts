@@ -13,16 +13,16 @@ const {
   },
 } = addressBook.moonbeam;
 
-const want = web3.utils.toChecksumAddress("0x015c6B2d98969e3bF066110769E53D734e48Ebf6");
+const want = web3.utils.toChecksumAddress("0x91b11E7649614EaBe97D96d75bE11d1068059FF1");
 
 const vaultParams = {
-  mooName: "Moo Stella FRAX-GLMR",
-  mooSymbol: "mooStellaFRAX-GLMR",
+  mooName: "Moo Stella GLMR-MAI",
+  mooSymbol: "mooStellaGLMR-MAI",
   delay: 21600,
 };
 
 const strategyParams = {
-  poolId: 18,
+  poolId: 17,
   want: want,
   chef: stellaswap.masterchefV1distributorV2,
   unirouter: stellaswap.router,
@@ -31,8 +31,8 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [STELLA, GLMR],
-  outputToLp0Route: [STELLA, GLMR, FRAXs],
-  outputToLp1Route: [STELLA, GLMR],
+  outputToLp0Route: [STELLA, GLMR],
+  outputToLp1Route: [STELLA, GLMR, MAI],
   pendingRewardsFunctionName: "pendingStella",
 };
 
