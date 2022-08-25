@@ -46,8 +46,8 @@
     "installForge": ". scripts/forge/installForge.sh",
     "forgeTest:vault": "forge test --force --fork-url https://rpc.ftm.tools --match-contract ProdVaultTest",
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
-    "deploy": "hardhat run scripts/vault/deploy-stella.js --network moonbeam",
-    "transfer": "hardhat run scripts/manage/transferOwnership.js --network moonbeam"
+    "deploy": "hardhat run scripts/vault/deploy-solidly-gauge.js --network bsc",
+    "transfer": "hardhat run scripts/manage/transferOwnership.js --network bsc"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",

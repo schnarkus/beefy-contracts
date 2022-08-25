@@ -15,12 +15,12 @@ const {
   },
 } = addressBook.bsc;
 
-const want = web3.utils.toChecksumAddress("0xF9D8A57c4F0bE3BDc6857Ee568F6B23FF9c4d1c6");
-const gauge = web3.utils.toChecksumAddress("0x44c890Fcfd2D2cdfDa40aCaCa715375C6DA57821");
+const want = web3.utils.toChecksumAddress("0x68ddA7c12f792E17C747A627d41153c103310D74");
+const gauge = web3.utils.toChecksumAddress("0x32258f716720EA65d6ae11B0AaF1692CDefe6f9F");
 
 const vaultParams = {
-  mooName: "Moo Cone USDC-BUSD",
-  mooSymbol: "mooConeUSDC-BUSD",
+  mooName: "Moo Cone USDT-USDC",
+  mooSymbol: "mooConeUSDT-USDC",
   delay: 21600,
 };
 
@@ -37,11 +37,12 @@ const strategyParams = {
   outputToLp0Route: [
     [CONE, BNB, false],
     [BNB, BUSD, false],
-    [BUSD, USDC, true],
+    [BUSD, USDT, true],
   ],
   outputToLp1Route: [
     [CONE, BNB, false],
     [BNB, BUSD, false],
+    [BUSD, USDC, true],
   ],
   verifyStrat: false,
 };
