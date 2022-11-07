@@ -1,10 +1,9 @@
 import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import { predictAddresses } from "../../utils/predictAddresses";
-import { setPendingRewardsFunctionName } from "../../utils/setPendingRewardsFunctionName";
 
 const {
-  platforms: { mai, beethovenx, beefyfinance },
+  platforms: { beethovenx, beefyfinance },
   tokens: {
     QI: { address: QI },
     WFTM: { address: WFTM },
@@ -12,28 +11,27 @@ const {
   },
 } = addressBook.fantom;
 
-const want = web3.utils.toChecksumAddress("0x7B4BFbEed1DEBb17c612a343CE392A9aFa1B3F6A");
-
 const vaultParams = {
-  mooName: "Moo Mai USDC-miMATIC",
-  mooSymbol: "mooMaiUSDC-miMATIC",
+  mooName: "Moo Mai FTM-QI",
+  mooSymbol: "mooMaiFTM-QI",
   delay: 21600,
 };
 
 const strategyParams = {
-  want: want,
-  poolId: 0,
-  chef: mai.chef,
+  balancerPoolIds: [
+    "0x7ae6a223cde3a17e0b95626ef71a2db5f03f540a00020000000000000000008a",
+    "0x7ae6a223cde3a17e0b95626ef71a2db5f03f540a00020000000000000000008a",
+    "0x7ae6a223cde3a17e0b95626ef71a2db5f03f540a00020000000000000000008a",
+    "0x7ae6a223cde3a17e0b95626ef71a2db5f03f540a00020000000000000000008a",
+  ],
+  chefPoolId: 1, // 0 for stable pool
+  chef: "0x230917f8a262bF9f2C3959eC495b11D1B7E1aFfC",
+  input: QI,
   unirouter: beethovenx.router,
-  strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
+  strategist: process.env.STRATEGIST_ADDRESS,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
-  outputToNativeRoute: [QI, WFTM],
-  outputToLp0Route: [QI, WFTM],
-  outputToLp1Route: [QI, WFTM],
-  shouldSetPendingRewardsFunctionName: true,
-  pendingRewardsFunctionName: "pending", // used for rewardsAvailable(), use correct function name from masterchef
 };
 
 const contractNames = {
@@ -72,9 +70,10 @@ async function main() {
   await vault.deployed();
 
   const strategyConstructorArguments = [
-    strategyParams.want,
-    strategyParams.poolId,
+    strategyParams.balancerPoolIds,
+    strategyParams.chefPoolId,
     strategyParams.chef,
+    strategyParams.input,
     [
       vault.address,
       strategyParams.unirouter,
@@ -83,9 +82,6 @@ async function main() {
       strategyParams.beefyFeeRecipient,
       strategyParams.beefyFeeConfig,
     ],
-    strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route,
-    strategyParams.outputToLp1Route,
   ];
   const strategy = await Strategy.deploy(...strategyConstructorArguments);
   await strategy.deployed();
@@ -95,7 +91,7 @@ async function main() {
   console.log("Vault:", vault.address);
   console.log("Strategy:", strategy.address);
   console.log("Want:", strategyParams.want);
-  console.log("PoolId:", strategyParams.poolId);
+  console.log("PoolId:", strategyParams.chefPoolId);
 
   console.log();
   console.log("Running post deployment");
