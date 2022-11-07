@@ -7,20 +7,21 @@ import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/common/IUniswapRouterETH.sol";
 import "../../interfaces/common/IUniswapV2Pair.sol";
-import "../../interfaces/common/IMasterChef.sol";
+import "../../interfaces/mai/IFarm.sol";
 import "../Common/StratFeeManager.sol";
+import "../../utils/BalancerUtils.sol";
 import "../../utils/StringUtils.sol";
 import "../../utils/GasFeeThrottler.sol";
 
-contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
+contract StrategyMAICurveLPBalancerRouter is StratFeeManager, GasFeeThrottler {
     using SafeERC20 for IERC20;
+    using BalancerUtils for IBalancerVault;
 
     // Tokens used
     address public native;
     address public output;
     address public want;
-    address public lpToken0;
-    address public lpToken1;
+    address public depositToken;
 
     // Third party contracts
     address public chef;
@@ -28,12 +29,10 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
 
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
-    string public pendingRewardsFunctionName;
 
     // Routes
-    address[] public outputToNativeRoute;
-    address[] public outputToLp0Route;
-    address[] public outputToLp1Route;
+    BalancerUtils.BatchSwapInfo public outputToNativePath;
+    BalancerUtils.BatchSwapInfo public outputToDepositPath;
 
     event StratHarvest(address indexed harvester, uint256 wantHarvested, uint256 tvl);
     event Deposit(uint256 tvl);
@@ -44,10 +43,11 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
         address _want,
         uint256 _poolId,
         address _chef,
-        CommonAddresses memory _commonAddresses,
+        bytes32[] memory _outputToNativePools,
+        bytes32[] memory _outputToDepositPools,
         address[] memory _outputToNativeRoute,
-        address[] memory _outputToLp0Route,
-        address[] memory _outputToLp1Route
+        address[] memory _outputToDepositRoute,
+        CommonAddresses memory _commonAddresses
     ) StratFeeManager(_commonAddresses) {
         want = _want;
         poolId = _poolId;
@@ -55,18 +55,10 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
 
         output = _outputToNativeRoute[0];
         native = _outputToNativeRoute[_outputToNativeRoute.length - 1];
-        outputToNativeRoute = _outputToNativeRoute;
+        depositToken = _outputToDepositRoute[_outputToDepositRoute.length - 1];
 
-        // setup lp routing
-        lpToken0 = IUniswapV2Pair(want).token0();
-        require(_outputToLp0Route[0] == output, "outputToLp0Route[0] != output");
-        require(_outputToLp0Route[_outputToLp0Route.length - 1] == lpToken0, "outputToLp0Route[last] != lpToken0");
-        outputToLp0Route = _outputToLp0Route;
-
-        lpToken1 = IUniswapV2Pair(want).token1();
-        require(_outputToLp1Route[0] == output, "outputToLp1Route[0] != output");
-        require(_outputToLp1Route[_outputToLp1Route.length - 1] == lpToken1, "outputToLp1Route[last] != lpToken1");
-        outputToLp1Route = _outputToLp1Route;
+        BalancerUtils.assignBatchSwapInfo(outputToNativePath, _outputToNativePools, _outputToNativeRoute);
+        BalancerUtils.assignBatchSwapInfo(outputToDepositPath, _outputToDepositPools, _outputToDepositRoute);
 
         _giveAllowances();
     }
@@ -76,7 +68,7 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal > 0) {
-            IMasterChef(chef).deposit(poolId, wantBal);
+            IFarm(chef).deposit(poolId, wantBal);
             emit Deposit(balanceOf());
         }
     }
@@ -87,7 +79,7 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal < _amount) {
-            IMasterChef(chef).withdraw(poolId, _amount - wantBal);
+            IFarm(chef).withdraw(poolId, _amount - wantBal);
             wantBal = IERC20(want).balanceOf(address(this));
         }
 
@@ -126,7 +118,7 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
 
     // compounds earnings and charges performance fee
     function _harvest(address callFeeRecipient) internal whenNotPaused {
-        IMasterChef(chef).deposit(poolId, 0);
+        IFarm(chef).deposit(poolId, 0);
         uint256 outputBal = IERC20(output).balanceOf(address(this));
         if (outputBal > 0) {
             chargeFees(callFeeRecipient);
@@ -143,64 +135,24 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
     function chargeFees(address callFeeRecipient) internal {
         IFeeConfig.FeeCategory memory fees = getFees();
         uint256 toNative = (IERC20(output).balanceOf(address(this)) * fees.total) / DIVISOR;
-        IUniswapRouterETH(unirouter).swapExactTokensForTokens(
-            toNative,
-            0,
-            outputToNativeRoute,
-            address(this),
-            block.timestamp
-        );
+        IBalancerVault(unirouter).swap(outputToNativePath, toNative);
 
-        uint256 nativeBal = IERC20(native).balanceOf(address(this));
+        uint256 nativeFeeBal = IERC20(native).balanceOf(address(this));
 
-        uint256 callFeeAmount = (nativeBal * fees.call) / DIVISOR;
+        uint256 callFeeAmount = (nativeFeeBal * fees.call) / DIVISOR;
         IERC20(native).safeTransfer(callFeeRecipient, callFeeAmount);
 
-        uint256 beefyFeeAmount = (nativeBal * fees.beefy) / DIVISOR;
+        uint256 beefyFeeAmount = (nativeFeeBal * fees.beefy) / DIVISOR;
         IERC20(native).safeTransfer(beefyFeeRecipient, beefyFeeAmount);
 
-        uint256 strategistFeeAmount = (nativeBal * fees.strategist) / DIVISOR;
+        uint256 strategistFeeAmount = (nativeFeeBal * fees.strategist) / DIVISOR;
         IERC20(native).safeTransfer(strategist, strategistFeeAmount);
 
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
     }
 
     // Adds liquidity to AMM and gets more LP tokens.
-    function addLiquidity() internal {
-        uint256 outputHalf = IERC20(output).balanceOf(address(this)) / 2;
-        if (lpToken0 != output) {
-            IUniswapRouterETH(unirouter).swapExactTokensForTokens(
-                outputHalf,
-                0,
-                outputToLp0Route,
-                address(this),
-                block.timestamp
-            );
-        }
-
-        if (lpToken1 != output) {
-            IUniswapRouterETH(unirouter).swapExactTokensForTokens(
-                outputHalf,
-                0,
-                outputToLp1Route,
-                address(this),
-                block.timestamp
-            );
-        }
-
-        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
-        IUniswapRouterETH(unirouter).addLiquidity(
-            lpToken0,
-            lpToken1,
-            lp0Bal,
-            lp1Bal,
-            1,
-            1,
-            address(this),
-            block.timestamp
-        );
-    }
+    function addLiquidity() internal {}
 
     // calculate the total underlaying 'want' held by the strat.
     function balanceOf() public view returns (uint256) {
@@ -214,22 +166,13 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256) {
-        (uint256 _amount, ) = IMasterChef(chef).userInfo(poolId, address(this));
+        (uint256 _amount, ) = IFarm(chef).userInfo(poolId, address(this));
         return _amount;
-    }
-
-    function setPendingRewardsFunctionName(string calldata _pendingRewardsFunctionName) external onlyManager {
-        pendingRewardsFunctionName = _pendingRewardsFunctionName;
     }
 
     // returns rewards unharvested
     function rewardsAvailable() public view returns (uint256) {
-        string memory signature = StringUtils.concat(pendingRewardsFunctionName, "(uint256,address)");
-        bytes memory result = Address.functionStaticCall(
-            chef,
-            abi.encodeWithSignature(signature, poolId, address(this))
-        );
-        return abi.decode(result, (uint256));
+        return IFarm(chef).pending(poolId, address(this));
     }
 
     // native reward amount for calling harvest
@@ -238,11 +181,15 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
         uint256 outputBal = rewardsAvailable();
         uint256 nativeOut;
         if (outputBal > 0) {
-            uint256[] memory amountOut = IUniswapRouterETH(unirouter).getAmountsOut(outputBal, outputToNativeRoute);
-            nativeOut = amountOut[amountOut.length - 1];
+            uint256[] memory amountsOut = IBalancerVault(unirouter).getAmountsOut(outputToNativePath, outputBal);
+            nativeOut = amountsOut[amountsOut.length - 1];
         }
 
         return (((nativeOut * fees.total) / DIVISOR) * fees.call) / DIVISOR;
+    }
+
+    function setShouldGasThrottle(bool _shouldGasThrottle) external onlyManager {
+        shouldGasThrottle = _shouldGasThrottle;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
@@ -255,15 +202,11 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
         }
     }
 
-    function setShouldGasThrottle(bool _shouldGasThrottle) external onlyManager {
-        shouldGasThrottle = _shouldGasThrottle;
-    }
-
     // called as part of strat migration. Sends all the available funds back to the vault.
     function retireStrat() external {
         require(msg.sender == vault, "!vault");
 
-        IMasterChef(chef).emergencyWithdraw(poolId);
+        IFarm(chef).emergencyWithdraw(poolId);
 
         uint256 wantBal = IERC20(want).balanceOf(address(this));
         IERC20(want).transfer(vault, wantBal);
@@ -272,7 +215,7 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
     // pauses deposits and withdraws all funds from third party systems.
     function panic() public onlyManager {
         pause();
-        IMasterChef(chef).emergencyWithdraw(poolId);
+        IFarm(chef).emergencyWithdraw(poolId);
     }
 
     function pause() public onlyManager {
@@ -292,30 +235,20 @@ contract StrategyMaiChefLPBeethovenx is StratFeeManager, GasFeeThrottler {
     function _giveAllowances() internal {
         IERC20(want).safeApprove(chef, type(uint256).max);
         IERC20(output).safeApprove(unirouter, type(uint256).max);
-
-        IERC20(lpToken0).safeApprove(unirouter, 0);
-        IERC20(lpToken0).safeApprove(unirouter, type(uint256).max);
-
-        IERC20(lpToken1).safeApprove(unirouter, 0);
-        IERC20(lpToken1).safeApprove(unirouter, type(uint256).max);
+        IERC20(depositToken).safeApprove(want, type(uint256).max);
     }
 
     function _removeAllowances() internal {
         IERC20(want).safeApprove(chef, 0);
         IERC20(output).safeApprove(unirouter, 0);
-        IERC20(lpToken0).safeApprove(unirouter, 0);
-        IERC20(lpToken1).safeApprove(unirouter, 0);
+        IERC20(depositToken).safeApprove(want, 0);
     }
 
     function outputToNative() external view returns (address[] memory) {
-        return outputToNativeRoute;
+        return outputToNativePath.route;
     }
 
-    function outputToLp0() external view returns (address[] memory) {
-        return outputToLp0Route;
-    }
-
-    function outputToLp1() external view returns (address[] memory) {
-        return outputToLp1Route;
+    function outputToDeposit() external view returns (address[] memory) {
+        return outputToDepositPath.route;
     }
 }
