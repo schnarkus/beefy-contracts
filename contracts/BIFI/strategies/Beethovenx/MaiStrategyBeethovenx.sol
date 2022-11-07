@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin-4/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/mai/IFarm.sol";
 import "../../interfaces/beethovenx/IBalancerVault.sol";
-import "../Common/FeeManager.sol";
+import "../../interfaces/mai/IFarm.sol";
+import "../Common/StratFeeManager.sol";
+import "../../utils/GasFeeThrottler.sol";
 
-contract MaiStrategyBeethovenx is FeeManager {
+contract MaiStrategyBeethovenx is StratFeeManager, GasFeeThrottler {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     // Tokens used
     address public want;
@@ -44,22 +42,18 @@ contract MaiStrategyBeethovenx is FeeManager {
         uint256 _chefPoolId,
         address _chef,
         address _input,
-        address _vault,
-        address _unirouter,
-        address _keeper,
-        address _strategist,
-        address _beefyFeeRecipient
-    ) StratManager(_keeper, _strategist, _unirouter, _vault, _beefyFeeRecipient) public {
+        CommonAddresses memory _commonAddresses
+    ) StratFeeManager(_commonAddresses) {
         wantPoolId = _balancerPoolIds[0];
         nativeSwapPoolId = _balancerPoolIds[1];
         inputSwapPoolId = _balancerPoolIds[2];
         chefPoolId = _chefPoolId;
         chef = _chef;
 
-        (want,) = IBalancerVault(unirouter).getPool(wantPoolId);
+        (want, ) = IBalancerVault(unirouter).getPool(wantPoolId);
         input = _input;
 
-        (lpTokens,,) = IBalancerVault(unirouter).getPoolTokens(wantPoolId);
+        (lpTokens, , ) = IBalancerVault(unirouter).getPoolTokens(wantPoolId);
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
 
@@ -82,7 +76,7 @@ contract MaiStrategyBeethovenx is FeeManager {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal < _amount) {
-            IFarm(chef).withdraw(chefPoolId, _amount.sub(wantBal));
+            IFarm(chef).withdraw(chefPoolId, _amount - wantBal);
             wantBal = IERC20(want).balanceOf(address(this));
         }
 
@@ -91,8 +85,8 @@ contract MaiStrategyBeethovenx is FeeManager {
         }
 
         if (tx.origin != owner() && !paused()) {
-            uint256 withdrawalFeeAmount = wantBal.mul(withdrawalFee).div(WITHDRAWAL_MAX);
-            wantBal = wantBal.sub(withdrawalFeeAmount);
+            uint256 withdrawalFeeAmount = (wantBal * withdrawalFee) / WITHDRAWAL_MAX;
+            wantBal = wantBal - withdrawalFeeAmount;
         }
 
         IERC20(want).safeTransfer(vault, wantBal);
@@ -136,25 +130,26 @@ contract MaiStrategyBeethovenx is FeeManager {
 
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
+        IFeeConfig.FeeCategory memory fees = getFees();
         uint256 toNative = IERC20(output).balanceOf(address(this));
         if (input != native) {
-            toNative = toNative.mul(45).div(1000);
+            toNative = ((toNative * fees.total) / DIVISOR);
         }
 
         balancerSwap(nativeSwapPoolId, output, native, toNative);
 
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
         if (input == native) {
-            nativeBal = nativeBal.mul(45).div(1000);
+            nativeBal = (nativeBal * fees.total) / DIVISOR;
         }
 
-        uint256 callFeeAmount = nativeBal.mul(callFee).div(MAX_FEE);
+        uint256 callFeeAmount = (nativeBal * fees.call) / DIVISOR;
         IERC20(native).safeTransfer(callFeeRecipient, callFeeAmount);
 
-        uint256 beefyFeeAmount = nativeBal.mul(beefyFee).div(MAX_FEE);
+        uint256 beefyFeeAmount = (nativeBal * fees.beefy) / DIVISOR;
         IERC20(native).safeTransfer(beefyFeeRecipient, beefyFeeAmount);
 
-        uint256 strategistFee = nativeBal.mul(STRATEGIST_FEE).div(MAX_FEE);
+        uint256 strategistFee = (nativeBal * fees.strategist) / DIVISOR;
         IERC20(native).safeTransfer(strategist, strategistFee);
     }
 
@@ -169,25 +164,46 @@ contract MaiStrategyBeethovenx is FeeManager {
         balancerJoin(wantPoolId, input, inputBal);
     }
 
-    function balancerSwap(bytes32 _poolId, address _tokenIn, address _tokenOut, uint256 _amountIn) internal returns (uint256) {
-        IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap(_poolId, swapKind, _tokenIn, _tokenOut, _amountIn, "");
-        return IBalancerVault(unirouter).swap(singleSwap, funds, 1, now);
+    function balancerSwap(
+        bytes32 _poolId,
+        address _tokenIn,
+        address _tokenOut,
+        uint256 _amountIn
+    ) internal returns (uint256) {
+        IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap(
+            _poolId,
+            swapKind,
+            _tokenIn,
+            _tokenOut,
+            _amountIn,
+            ""
+        );
+        return IBalancerVault(unirouter).swap(singleSwap, funds, 1, block.timestamp);
     }
 
-    function balancerJoin(bytes32 _poolId, address _tokenIn, uint256 _amountIn) internal {
+    function balancerJoin(
+        bytes32 _poolId,
+        address _tokenIn,
+        uint256 _amountIn
+    ) internal {
         uint256[] memory amounts = new uint256[](lpTokens.length);
         for (uint256 i = 0; i < amounts.length; i++) {
             amounts[i] = lpTokens[i] == _tokenIn ? _amountIn : 0;
         }
         bytes memory userData = abi.encode(1, amounts, 1);
 
-        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(lpTokens, amounts, userData, false);
+        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(
+            lpTokens,
+            amounts,
+            userData,
+            false
+        );
         IBalancerVault(unirouter).joinPool(_poolId, address(this), address(this), request);
     }
 
     // calculate the total underlaying 'want' held by the strat.
     function balanceOf() public view returns (uint256) {
-        return balanceOfWant().add(balanceOfPool());
+        return balanceOfWant() + balanceOfPool();
     }
 
     // it calculates how much 'want' this contract holds.
@@ -197,7 +213,7 @@ contract MaiStrategyBeethovenx is FeeManager {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256) {
-        (uint256 _amount,) = IFarm(chef).userInfo(chefPoolId, address(this));
+        (uint256 _amount, ) = IFarm(chef).userInfo(chefPoolId, address(this));
         return _amount;
     }
 
@@ -208,6 +224,7 @@ contract MaiStrategyBeethovenx is FeeManager {
 
     // native reward amount for calling harvest
     function callReward() public returns (uint256) {
+        IFeeConfig.FeeCategory memory fees = getFees();
         IFarm(chef).deposit(chefPoolId, 0);
         uint256 outputBal = IERC20(output).balanceOf(address(this));
         uint256 nativeOut;
@@ -215,7 +232,7 @@ contract MaiStrategyBeethovenx is FeeManager {
             nativeOut = balancerSwap(nativeSwapPoolId, output, native, outputBal);
         }
 
-        return nativeOut.mul(45).div(1000).mul(callFee).div(MAX_FEE);
+        return (((nativeOut * fees.total) / DIVISOR) * fees.call) / DIVISOR;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
@@ -259,11 +276,11 @@ contract MaiStrategyBeethovenx is FeeManager {
     }
 
     function _giveAllowances() internal {
-        IERC20(want).safeApprove(chef, uint256(-1));
-        IERC20(output).safeApprove(unirouter, uint256(-1));
+        IERC20(want).safeApprove(chef, type(uint256).max);
+        IERC20(output).safeApprove(unirouter, type(uint256).max);
 
         IERC20(input).safeApprove(unirouter, 0);
-        IERC20(input).safeApprove(unirouter, uint256(-1));
+        IERC20(input).safeApprove(unirouter, type(uint256).max);
     }
 
     function _removeAllowances() internal {
