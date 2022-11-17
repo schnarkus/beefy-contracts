@@ -2,47 +2,60 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import { predictAddresses } from "../../utils/predictAddresses";
 
-const { 
-  platforms: {  velodrome, beefyfinance   },
+const {
+  platforms: { velodrome, beefyfinance },
   tokens: {
     VELO: { address: VELO },
-    USDC: { address: ETH },
+    USDC: { address: USDC },
     ETH: { address: ETH },
-    ETH: { address: ETH },
+    wstETH: { address: wstETH },
   },
 } = addressBook.optimism;
 
-const want = web3.utils.toChecksumAddress("0x672cD8201CEB518F9E42526ef7bCFe5263F41951");
-const gauge = web3.utils.toChecksumAddress("0x09635bd2F4aA47afc7eB9d2F03c4fE4e747D4B42");
+const USDPlus = web3.utils.toChecksumAddress("0x73cb180bf0521828d8849bc8CF2B920918e23032");
+const LDO = web3.utils.toChecksumAddress("0xFdb794692724153d1488CcdBE0C56c252596735F");
+
+const want = web3.utils.toChecksumAddress("0xfEdd5A17D009DCB28DEaC39094A2aA5b601DC4a3");
+const gauge = web3.utils.toChecksumAddress("0x9237cBd5ba18c567bcE30671fF1D3252A35770bE");
 
 const vaultParams = {
-  mooName: "Moo Velodrome CONE-BNB",
-  mooSymbol: "mooVelodromeCONE-BNB",
+  mooName: "Moo Velodrome wstETH-LDO",
+  mooSymbol: "mooVelodromewstETH-LDO",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   gauge: gauge,
-  unirouter: cone.router,
-  gaugeStaker: cone.gaugeStaker,
-  strategist: "0xb2e4A61D99cA58fB8aaC58Bb2F8A59d63f552fC0", // some address
+  unirouter: velodrome.router,
+  strategist: "0xfB41Cbf2ce16E8f626013a2F465521d27BA9a610",
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
-  outputToNativeRoute: [[VELO, USDC,],[USDC,ETH, false]],
-  outputToLp0Route: [[CONE, CONE, false]],
-  outputToLp1Route: [[CONE, WBNB, false]],
-  verifyStrat: false,
+  outputToNativeRoute: [
+    [VELO, USDC, false],
+    [USDC, ETH, false],
+  ],
+  outputToLp0Route: [
+    [VELO, USDC, false],
+    [USDC, ETH, false],
+    [ETH, wstETH, true],
+  ],
+  outputToLp1Route: [
+    [VELO, USDC, false],
+    [USDC, ETH, false],
+    [ETH, wstETH, true],
+    [wstETH, LDO, false],
+  ],
 };
 
 const contractNames = {
   vault: "BeefyVaultV6",
-  strategy: "StrategyCommonSolidlyStakerLP" ,
+  strategy: "StrategyCommonSolidlyGaugeLP",
 };
- 
+
 async function main() {
- if (
+  if (
     Object.values(vaultParams).some(v => v === undefined) ||
     Object.values(strategyParams).some(v => v === undefined) ||
     Object.values(contractNames).some(v => v === undefined)
@@ -74,7 +87,6 @@ async function main() {
   const strategyConstructorArguments = [
     strategyParams.want,
     strategyParams.gauge,
-    strategyParams.gaugeStaker,
     [
       vault.address,
       strategyParams.unirouter,
@@ -84,8 +96,8 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
-    strategyParams.outputToLp1Route
+    strategyParams.outputToLp0Route,
+    strategyParams.outputToLp1Route,
   ];
 
   const strategy = await Strategy.deploy(...strategyConstructorArguments);
@@ -101,16 +113,8 @@ async function main() {
   console.log();
   console.log("Running post deployment");
 
-
- // await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
   await vault.transferOwnership(beefyfinance.vaultOwner);
   console.log(`Transfered Vault Ownership to ${beefyfinance.vaultOwner}`);
-
-
-
-  
- 
-
 }
 
 main()
