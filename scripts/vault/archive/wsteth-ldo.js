@@ -12,14 +12,14 @@ const {
   },
 } = addressBook.optimism;
 
-const USDPlus = web3.utils.toChecksumAddress("0x73cb180bf0521828d8849bc8CF2B920918e23032");
+const LDO = web3.utils.toChecksumAddress("0xFdb794692724153d1488CcdBE0C56c252596735F");
 
-const want = web3.utils.toChecksumAddress("0x98dc12979A34EE2F7099B1cBD65f9080c5a3284F");
-const gauge = web3.utils.toChecksumAddress("0xDB8dD0d6f1E22A5608483778206577683a408bD0");
+const want = web3.utils.toChecksumAddress("0xfEdd5A17D009DCB28DEaC39094A2aA5b601DC4a3");
+const gauge = web3.utils.toChecksumAddress("0x9237cBd5ba18c567bcE30671fF1D3252A35770bE");
 
 const vaultParams = {
-  mooName: "Moo Velodrome wstETH-USD+",
-  mooSymbol: "mooVelodromewstETH-USD+",
+  mooName: "Moo Velodrome wstETH-LDO",
+  mooSymbol: "mooVelodromewstETH-LDO",
   delay: 21600,
 };
 
@@ -42,7 +42,9 @@ const strategyParams = {
   ],
   outputToLp1Route: [
     [VELO, USDC, false],
-    [USDC, USDPlus, true],
+    [USDC, ETH, false],
+    [ETH, wstETH, true],
+    [wstETH, LDO, false],
   ],
 };
 
