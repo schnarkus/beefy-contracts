@@ -10,7 +10,8 @@ const newOwner = beefyfinance.strategyOwner;
 console.log('Transferring ownership to:', newOwner);
 
 const contracts = [
-  '',
+  "0xFCe74fe54BA4B3428cAc457820A275240037dB92",
+  "0x3B9292D78B0Aa958f2029e082Ed104096Dc20cd5"
 ];
 
 async function main() {
