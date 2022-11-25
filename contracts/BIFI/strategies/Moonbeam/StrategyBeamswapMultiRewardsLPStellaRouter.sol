@@ -8,7 +8,7 @@ import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/common/IUniswapRouterETH.sol";
 import "../../interfaces/common/IUniswapV2Pair.sol";
 import "../../interfaces/common/IWrappedNative.sol";
-import "../../interfaces/solar/ISolarChef.sol";
+import "../../interfaces/stellaswap/IMasterChefV8.sol";
 import "../Common/StratFeeManager.sol";
 import "../../utils/GasFeeThrottler.sol";
 
@@ -165,7 +165,7 @@ contract StrategyBeamswapMultiRewardsLPStellaRouter is StratFeeManager, GasFeeTh
 
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
-        IFeeConfig.FeeCategory memory fees = getAllFees();
+        IFeeConfig.FeeCategory memory fees = getFees();
         uint256 nativeFeesOwed = IERC20(native).balanceOf(address(this)) * fees.total / DIVISOR;
 
         uint256 callFeeAmount = nativeFeesOwed * fees.call / DIVISOR;
@@ -219,7 +219,7 @@ contract StrategyBeamswapMultiRewardsLPStellaRouter is StratFeeManager, GasFeeTh
     }
 
     function callReward() public view returns (uint256) {
-        IFeeConfig.FeeCategory memory fees = getAllFees();
+        IFeeConfig.FeeCategory memory fees = getFees();
         (address[] memory rewardAdd, uint256[] memory rewardBal) = rewardsAvailable();
         uint256 nativeOut;
         try IUniswapRouterETH(unirouter).getAmountsOut(rewardBal[0], outputToNativeRoute)
