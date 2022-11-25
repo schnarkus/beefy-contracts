@@ -106,7 +106,7 @@ contract StrategyBeamswapMultiRewardsLPStellaRouter is StratFeeManager, GasFeeTh
         emit Withdraw(balanceOf());
     }
 
-    function beforeDeposit() external override {
+    function beforeDeposit() external virtual override {
         if (harvestOnDeposit) {
             require(msg.sender == vault, "!vault");
             _harvest(tx.origin);
@@ -126,7 +126,7 @@ contract StrategyBeamswapMultiRewardsLPStellaRouter is StratFeeManager, GasFeeTh
     }
 
     // compounds earnings and charges performance fee
-    function _harvest(address callFeeRecipient) internal whenNotPaused{
+    function _harvest(address callFeeRecipient) internal whenNotPaused {
         IMasterChefV8(chef).deposit(poolId, 0);
         uint256 outputBal = IERC20(output).balanceOf(address(this));
         if (outputBal > 0) {
@@ -318,7 +318,7 @@ contract StrategyBeamswapMultiRewardsLPStellaRouter is StratFeeManager, GasFeeTh
         if (rewardToNativeRoute.length != 0) {
             for (uint i; i < rewardToNativeRoute.length; i++) {
                 IERC20(rewardToNativeRoute[i][0]).safeApprove(stellaRouter, 0);
-            }
+            }                
         }
     }
 
