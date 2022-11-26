@@ -6,7 +6,7 @@
     "@uniswap/lib": "^4.0.1-alpha",
     "@uniswap/v2-core": "^1.0.1",
     "bignumber.js": "^9.0.1",
-    "blockchain-addressbook": "^0.39.30",
+    "blockchain-addressbook": "^0.40.9",
     "keccak": "^3.0.1",
     "node-fetch": "2.6.1",
     "rlp": "^2.2.6",
@@ -51,7 +51,9 @@
     "forgeTest:vault": "forge test --force --fork-url https://rpc.ftm.tools --match-contract ProdVaultTest",
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
     "fork:bsc": "hardhat node --fork bsc",
-    "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost"
+    "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
+    "deploy": "hardhat run scripts/vault/deploy-beamswap.js --network moonbeam",
+    "transfer": "hardhat run scripts/manage/transferOwnership.js --network moonbeam"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",
