@@ -115,7 +115,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     moonbeam: {
-      url: process.env.MOONBEAM_RPC || "https://rpc.api.moonbeam.network",
+      url: process.env.MOONBEAM_RPC || "https://rpc.ankr.com/moonbeam",
       chainId: 1284,
       accounts,
     },
