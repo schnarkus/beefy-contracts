@@ -8,6 +8,7 @@ import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/common/IUniswapRouterETH.sol";
 import "../../interfaces/common/IWrappedNative.sol";
 import "../../interfaces/solar/ISolarStableRouter.sol";
+import "../../interfaces/stellaswap/IStellaStableRouter.sol";
 import "../../interfaces/solar/ISolarChef.sol";
 import "../Common/StratFeeManager.sol";
 import "../../utils/GasFeeThrottler.sol";
@@ -34,6 +35,7 @@ contract StrategySolarbeamMetaStable is StratFeeManager, GasFeeThrottler {
     // Third party contracts
     address public chef;
     uint256 public poolId;
+    address public stellaStableRouter = address(0xB0Dfd6f3fdDb219E60fCDc1EA3D04B22f2FFa9Cc);
 
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
