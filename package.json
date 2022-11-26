@@ -52,7 +52,8 @@
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
     "fork:bsc": "hardhat node --fork bsc",
     "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
-    "deploy": "hardhat run scripts/vault/deploy-beamswap.js --network moonbeam"
+    "deploy": "hardhat run scripts/vault/deploy-beamswap.js --network moonbeam",
+    "transfer": "hardhat run scripts/manage/transferOwnership.js --network moonbeam"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",

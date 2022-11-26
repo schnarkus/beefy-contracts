@@ -1,16 +1,16 @@
 const hardhat = require("hardhat");
 const { addressBook } = require("blockchain-addressbook")
 
-const { beefyfinance } = addressBook.bsc.platforms;
+const { beefyfinance } = addressBook.moonbeam.platforms;
 
 const ethers = hardhat.ethers;
 
 const abi = ["function transferOwnership(address newOwner) public"];
-const newOwner = beefyfinance.devMultisig;
+const newOwner = beefyfinance.strategyOwner;
 console.log('Transferring ownership to:', newOwner);
 
 const contracts = [
-  '0xCB214C265e8Bc37B6d7df1601cB7dA35EC8F89c6',
+  '0xA876d07323e449D46FBEED2136b348baf81835Aa',
 ];
 
 async function main() {
