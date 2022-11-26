@@ -115,7 +115,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     moonbeam: {
-      url: process.env.MOONBEAM_RPC || "https://rpc.api.moonbeam.network",
+      url: process.env.MOONBEAM_RPC || "https://rpc.ankr.com/moonbeam",
       chainId: 1284,
       accounts,
     },
@@ -142,15 +142,6 @@ const config: DeploymentConfig = {
   },
   solidity: {
     compilers: [
-      {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
       {
         version: "0.8.15",
         settings: {
