@@ -38,7 +38,7 @@ const strategyParams = {
 
 const contractNames = {
   vault: "BeefyVaultV6",
-  strategy: "StrategyBeamswapMultiRewardsLPStellaRouter",
+  strategy: "StrategyBeamswapMultiRewards",
 };
 
 async function main() {
