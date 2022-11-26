@@ -75,12 +75,14 @@ async function main() {
     strategyParams.want,
     strategyParams.poolId,
     strategyParams.chef,
-    [vault.address,
-    strategyParams.unirouter,
-    strategyParams.keeper,
-    strategyParams.strategist,
-    strategyParams.beefyFeeRecipient,
-    strategyParams.beefyFeeConfig],
+    [
+      vault.address,
+      strategyParams.unirouter,
+      strategyParams.keeper,
+      strategyParams.strategist,
+      strategyParams.beefyFeeRecipient,
+      strategyParams.beefyFeeConfig
+    ],
     strategyParams.outputToNativeRoute,
     strategyParams.nativeToLp0Route,
     strategyParams.nativeToLp1Route
@@ -95,13 +97,12 @@ async function main() {
   console.log("Want:", strategyParams.want);
   console.log("PoolId:", strategyParams.poolId);
 
+  console.log(`Transferring Vault Owner to ${beefyfinance.vaultOwner}`)
+  await vault.transferOwnership(beefyfinance.vaultOwner);
+
   console.log();
   console.log("Adding reward route:");
   await strategy.addRewardRoute(strategyParams.rewardToNativeRoute);
-
-  console.log(`Transferring Vault Owner to ${beefyfinance.vaultOwner}`)
-  await vault.transferOwnership(beefyfinance.vaultOwner);
-  console.log();
 }
 
 main()
