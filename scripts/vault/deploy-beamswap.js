@@ -101,9 +101,9 @@ async function main() {
   console.log(`Transferring Vault Owner to ${beefyfinance.vaultOwner}`)
   await vault.transferOwnership(beefyfinance.vaultOwner);
 
-  // console.log();
-  // console.log("Adding reward route:");
-  // await strategy.addRewardRoute(strategyParams.rewardToNativeRoute);
+  console.log();
+  console.log("Adding reward route:");
+  await strategy.addRewardRoute(strategyParams.rewardToNativeRoute);
 }
 
 main()
