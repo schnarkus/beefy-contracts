@@ -12,7 +12,7 @@ import "../../interfaces/beamswap/IBeamChef.sol";
 import "../Common/StratFeeManager.sol";
 import "../../utils/GasFeeThrottler.sol";
 
-contract StrategyBeamswapMultiRewardsLPStellaRouter is StratFeeManager, GasFeeThrottler {
+contract StrategyBeamswapMultiRewards is StratFeeManager, GasFeeThrottler {
     using SafeERC20 for IERC20;
 
     // Tokens used
