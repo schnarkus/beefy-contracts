@@ -11,21 +11,20 @@ const {
     ETH: { address: ETH },
     WBTC: { address: WBTC },
     MIM: { address: MIM },
-    FRAX: { address: FRAX },
   },
 } = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0x85710698eB1fB588aF3996a268e73938795Bf558");
+const want = web3.utils.toChecksumAddress("0x23d7CB985B5b23d83E5c2eb04074649aF1d488bf");
 
 const vaultParams = {
-  mooName: "Moo Fish FRAX-USDC",
-  mooSymbol: "mooFishFRAX-USDC",
+  mooName: "Moo Fish MIM-USDC",
+  mooSymbol: "mooFishMIM-USDC",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  poolId: 12,
+  poolId: 4,
   chef: swapfish.minichef,
   unirouter: swapfish.router,
   strategist: process.env.STRATEGIST_ADDRESS,
@@ -33,7 +32,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [FISH, ETH],
-  outputToLp0Route: [FISH, USDC, FRAX],
+  outputToLp0Route: [FISH, USDC, MIM],
   outputToLp1Route: [FISH, USDC],
   shouldSetPendingRewardsFunctionName: true,
   pendingRewardsFunctionName: "pendingCake", // used for rewardsAvailable(), use correct function name from masterchef
