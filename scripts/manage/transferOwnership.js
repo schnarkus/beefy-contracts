@@ -1,7 +1,7 @@
 const hardhat = require("hardhat");
 const { addressBook } = require("blockchain-addressbook")
 
-const { beefyfinance } = addressBook.moonbeam.platforms;
+const { beefyfinance } = addressBook.arbitrum.platforms;
 
 const ethers = hardhat.ethers;
 

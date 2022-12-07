@@ -2,45 +2,36 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import { predictAddresses } from "../../utils/predictAddresses";
 import { setPendingRewardsFunctionName } from "../../utils/setPendingRewardsFunctionName";
-import { verifyContract } from "../../utils/verifyContract";
-
-const registerSubsidy = require("../../utils/registerSubsidy");
 
 const {
-  platforms: { pancake, beefyfinance },
+  platforms: { swapfish, beefyfinance },
   tokens: {
-    CAKE: { address: CAKE },
-    WBNB: { address: WBNB },
-    WOM: { address: WOM },
-    SD: { address: SD },
-    BUSD: { address: BUSD }
+    FISH: { address: FISH },
+    USDC: { address: USDC },
+    ETH: { address: ETH },
   },
-} = addressBook.bsc;
+} = addressBook.arbitrum;
 
-const shouldVerifyOnEtherscan = false;
-
-const want = web3.utils.toChecksumAddress("0xe68D05418A8d7969D9CA6761ad46F449629d928c");
-const ensId = ethers.utils.formatBytes32String("cake.eth");
+const want = web3.utils.toChecksumAddress("0x8Bc2Cd9DAB840231A0Dab5B747b8A6085c4eA459");
 
 const vaultParams = {
-  mooName: "Moo CakeV2 WOM-BUSD",
-  mooSymbol: "mooCakeV2WOM-BUSD",
+  mooName: "Moo Fish ETH-USDC",
+  mooSymbol: "mooFishETH-USDC",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  poolId: 116,
-  chef: pancake.masterchefV2,
-  unirouter: pancake.router,
+  poolId: 1,
+  chef: swapfish.minichef,
+  unirouter: swapfish.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
-  outputToNativeRoute: [CAKE, WBNB],
-  outputToLp0Route: [CAKE, BUSD, WOM],
-  outputToLp1Route: [CAKE, BUSD],
-  ensId,
+  outputToNativeRoute: [FISH, ETH],
+  outputToLp0Route: [FISH, ETH],
+  outputToLp1Route: [FISH, USDC],
   shouldSetPendingRewardsFunctionName: true,
   pendingRewardsFunctionName: "pendingCake", // used for rewardsAvailable(), use correct function name from masterchef
 };
@@ -107,29 +98,14 @@ async function main() {
   console.log();
   console.log("Running post deployment");
 
-  const verifyContractsPromises: Promise<any>[] = [];
-  if (shouldVerifyOnEtherscan) {
-    // skip await as this is a long running operation, and you can do other stuff to prepare vault while this finishes
-    verifyContractsPromises.push(
-      verifyContract(vault.address, vaultConstructorArguments),
-      verifyContract(strategy.address, strategyConstructorArguments)
-    );
+  if (strategyParams.shouldSetPendingRewardsFunctionName) {
+    await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
   }
 
-  if (strategyParams.shouldSetPendingRewardsFunctionName) {
-      await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
-  }
-  
   console.log(`Transfering Vault Owner to ${beefyfinance.vaultOwner}`)
   await vault.transferOwnership(beefyfinance.vaultOwner);
   console.log();
 
-  await Promise.all(verifyContractsPromises);
-
-  if (hardhat.network.name === "bsc") {
-    await registerSubsidy(vault.address, deployer);
-    await registerSubsidy(strategy.address, deployer);
-  }
 }
 
 main()
