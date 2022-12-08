@@ -9,16 +9,15 @@ const {
     USDC: { address: USDC },
     ETH: { address: ETH },
     USDT: { address: USDT },
-    USX: { address: USX },
   },
 } = addressBook.optimism;
 
-const want = web3.utils.toChecksumAddress("0x5edac6B8EA08d535c01981D75B3361481C0EE999");
-const gauge = web3.utils.toChecksumAddress("0xAEA343b1EF5ECfa0D252d7078425BaC047cf5d18");
+const want = web3.utils.toChecksumAddress("0xe08d427724d8a2673FE0bE3A81b7db17BE835B36");
+const gauge = web3.utils.toChecksumAddress("0x654F9e476865CE72EF2FB73861C03804AA5208D1");
 
 const vaultParams = {
-  mooName: "Moo Velo USDC-USX",
-  mooSymbol: "mooVeloUSDC-USX",
+  mooName: "Moo Velo USDC-USDT",
+  mooSymbol: "mooVeloUSDC-USDT",
   delay: 21600,
 };
 
@@ -32,7 +31,7 @@ const strategyParams = {
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [[VELO, USDC, false], [USDC, ETH, false]],
   outputToLp0Route: [[VELO, USDC, false]],
-  outputToLp1Route: [[VELO, USDC, false], [USDC, USX, true]],
+  outputToLp1Route: [[VELO, USDC, false], [USDC, USDT, true]],
 };
 
 const contractNames = {

@@ -1,7 +1,7 @@
 const hardhat = require("hardhat");
 const { addressBook } = require("blockchain-addressbook")
 
-const { beefyfinance } = addressBook.arbitrum.platforms;
+const { beefyfinance } = addressBook.optimism.platforms;
 
 const ethers = hardhat.ethers;
 
@@ -10,7 +10,7 @@ const newOwner = beefyfinance.strategyOwner;
 console.log('Transferring ownership to:', newOwner);
 
 const contracts = [
-  "0xbc5654D881620b844f2d1B21E3480d980B28D01b",
+  "",
 ];
 
 async function main() {
