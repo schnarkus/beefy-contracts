@@ -44,7 +44,7 @@
     "deploy:contract": "hardhat run scripts/infra/deployContract.js --network",
     "deploy:zap": "hardhat run scripts/infra/deployZap.js --network arbitrum",
     "zap": "hardhat run ./scripts/infra/zapViaAggregator.js --network",
-    "flat-hardhat": "hardhat flatten contracts/BIFI/strategies/Moonbeam/StrategyBeamswapMultiRewardsLP.sol > tmp/flattened.sol",
+    "flat-hardhat": "hardhat flatten contracts/BIFI/strategies/Common/StrategyCommonSolidlyGaugeLP.sol > tmp/flattened.sol",
     "flat": "bin/flatten.sh",
     "flat:chain": "bin/flattenChainContracts.sh",
     "abi-to-sol": "abi-to-sol",
