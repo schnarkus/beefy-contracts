@@ -15,18 +15,18 @@ const {
   },
 } = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0xE1e8C58FfD8C22392aA9e67AcCD1911628C27B80");
+const want = web3.utils.toChecksumAddress("0x6832EF9928a7AD3F887e34D4F9f70A3CEed0C1b4");
 const VST = web3.utils.toChecksumAddress("0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17");
 
 const vaultParams = {
-  mooName: "Moo Fish VST-ETH",
-  mooSymbol: "mooFishVST-ETH",
+  mooName: "Moo Fish VST-USDC",
+  mooSymbol: "mooFishVST-USDC",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  poolId: 20,
+  poolId: 21,
   chef: swapfish.minichef,
   unirouter: swapfish.router,
   strategist: process.env.STRATEGIST_ADDRESS,
@@ -34,8 +34,8 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [FISH, ETH],
-  outputToLp0Route: [FISH, ETH, VST],
-  outputToLp1Route: [FISH, ETH],
+  outputToLp0Route: [FISH, USDC, VST],
+  outputToLp1Route: [FISH, USDC],
   shouldSetPendingRewardsFunctionName: true,
   pendingRewardsFunctionName: "pendingCake", // used for rewardsAvailable(), use correct function name from masterchef
 };
