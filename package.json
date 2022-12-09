@@ -53,8 +53,8 @@
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
     "fork:bsc": "hardhat node --fork bsc",
     "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
-    "deploy": "hardhat run scripts/vault/deploy-solidly-gauge.js --network optimism",
-    "transfer": "hardhat run scripts/manage/transferOwnership.js --network optimism"
+    "deploy": "hardhat run scripts/vault/deploy-common.js --network arbitrum",
+    "transfer": "hardhat run scripts/manage/transferOwnership.js --network arbitrum"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",
