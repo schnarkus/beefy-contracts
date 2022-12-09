@@ -15,18 +15,18 @@ const {
   },
 } = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0x28A13285e9F647a07e9BbE10A5549aeB559e09cB");
-const MAI = web3.utils.toChecksumAddress("0x3F56e0c36d275367b8C502090EDF38289b3dEa0d");
+const want = web3.utils.toChecksumAddress("0xE1e8C58FfD8C22392aA9e67AcCD1911628C27B80");
+const VST = web3.utils.toChecksumAddress("0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17");
 
 const vaultParams = {
-  mooName: "Moo Fish MAI-ETH",
-  mooSymbol: "mooFishMAI-ETH",
+  mooName: "Moo Fish VST-ETH",
+  mooSymbol: "mooFishVST-ETH",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  poolId: 18,
+  poolId: 20,
   chef: swapfish.minichef,
   unirouter: swapfish.router,
   strategist: process.env.STRATEGIST_ADDRESS,
@@ -34,7 +34,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [FISH, ETH],
-  outputToLp0Route: [FISH, ETH, MAI],
+  outputToLp0Route: [FISH, ETH, VST],
   outputToLp1Route: [FISH, ETH],
   shouldSetPendingRewardsFunctionName: true,
   pendingRewardsFunctionName: "pendingCake", // used for rewardsAvailable(), use correct function name from masterchef
