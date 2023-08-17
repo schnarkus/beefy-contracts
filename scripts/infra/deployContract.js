@@ -1,51 +1,28 @@
 const { getContractAddress } = require("@openzeppelin/hardhat-upgrades/dist/utils");
 const hardhat = require("hardhat");
-const { startingEtherPerAccount } = require("../../utils/configInit");
-
 const ethers = hardhat.ethers;
 
-const contractName = "StrategyCommonSolidlyRewardPoolLP";
-const factoryName = "BeefyVaultV7Factory";
-
-const config = {};
+const contractName = "DGNAPES";
 
 async function main() {
   await hardhat.run("compile");
 
   const Contract = await ethers.getContractFactory(contractName);
-  const Factory = await ethers.getContractFactory(factoryName);
 
-  const params = [
-    config.anycallRouter, 
-    config.beQI,
-    config.anycallProxy
-  ]
-
-  const contract = await Contract.deploy();
+  const contract = await Contract.deploy("0xF9e1F4EEdE806FDA20f4084d9f9c4c2b36E38e77");
   await contract.deployed();
-  
- // console.log(`${contractName} deployed to:`, contract.address);
+  console.log(`${contractName} deployed to:`, contract.address);
 
- // const factory = await Factory.deploy(contract.address);
- // await factory.deployed();
-
-  
- // console.log(`${factoryName} deployed to:`, factory.address);
-
-  if (config.verify) {
-    await hardhat.run("verify:verify", {
-      address: contract.address,
-      constructorArguments: [
-        ...params
-      ],
-    })
-  }
-  
+  await hardhat.run("verify:verify", {
+    //change api key to chain
+    address: contract.address,
+    constructorArguments: ["0xF9e1F4EEdE806FDA20f4084d9f9c4c2b36E38e77"],
+  });
 }
 
 main()
   .then(() => process.exit(0))
-  .catch((error) => {
+  .catch(error => {
     console.error(error);
     process.exit(1);
   });

@@ -2566,10 +2566,10 @@ blakejs@^1.1.0:
   resolved "https://registry.yarnpkg.com/blakejs/-/blakejs-1.1.1.tgz#bf313053978b2cd4c444a48795710be05c785702"
   integrity sha512-bLG6PHOCZJKNshTjGRBvET0vTciwQE6zFKOKKXPDJfwFBd4Ac0yBfPZqcGvGJap50l7ktvlpFqc2jGVaUgbJgg==
 
-blockchain-addressbook@^0.40.33:
-  version "0.40.33"
-  resolved "https://registry.yarnpkg.com/blockchain-addressbook/-/blockchain-addressbook-0.40.33.tgz#678d2a4cff1909bfd0d916f8ac975e6ca25a8d14"
-  integrity sha512-eqR2FFjI7IpB7OpSw7iUgrOwgOLiWh4JDDDzMjNpj2Uwoe381iWhg0k/DNePWjKF7AXsl3ZDTsUV0kwcDmNRKQ==
+blockchain-addressbook@^0.43.41:
+  version "0.43.41"
+  resolved "https://registry.yarnpkg.com/blockchain-addressbook/-/blockchain-addressbook-0.43.41.tgz#3b0f5310a9b86dfae978229ced752c08d8336ccb"
+  integrity sha512-yaMIHUNtSaEAHyB7UTbusGbPzdFnM0xTP3fAiC04NW/gDuaRcW/QlobsXjCfP7RrdAU594I137nO1QDEosbMUg==
 
 bluebird@^3.5.0, bluebird@^3.5.2:
   version "3.7.2"
@@ -5667,10 +5667,10 @@ hardhat-watcher@^2.1.1:
   dependencies:
     chokidar "^3.5.3"
 
-hardhat@^2.12.2:
-  version "2.12.2"
-  resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.12.2.tgz#6ae985007b20c1f381c6573799d66c1438c4c802"
-  integrity sha512-f3ZhzXy1uyQv0UXnAQ8GCBOWjzv++WJNb7bnm10SsyC3dB7vlPpsMWBNhq7aoRxKrNhX9tCev81KFV3i5BTeMQ==
+hardhat@^2.12.6:
+  version "2.12.6"
+  resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.12.6.tgz#ea3c058bbd81850867389d10f76037cfa52a0019"
+  integrity sha512-0Ent1O5DsPgvaVb5sxEgsQ3bJRt/Ex92tsoO+xjoNH2Qc4bFmhI5/CHVlFikulalxOPjNmw5XQ2vJFuVQFESAA==
   dependencies:
     "@ethersproject/abi" "^5.1.2"
     "@metamask/eth-sig-util" "^4.0.0"
@@ -5719,7 +5719,7 @@ hardhat@^2.12.2:
     source-map-support "^0.5.13"
     stacktrace-parser "^0.1.10"
     tsort "0.0.1"
-    undici "^5.4.0"
+    undici "^5.14.0"
     uuid "^8.3.2"
     ws "^7.4.6"
 
@@ -8330,10 +8330,15 @@ prettier@^1.14.3:
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-1.19.1.tgz#f7d7f5ff8a9cd872a7be4ca142095956a60797cb"
   integrity sha512-s7PoyDv/II1ObgQunCbB9PdLmUcBZcnWOcxDh7O0N/UwDEsHyqkW+Qh28jW+mVuCdx7gLB0BotYI1Y6uI9iyew==
 
-prettier@^2.0.5, prettier@^2.1.2, prettier@^2.5.1:
+prettier@^2.0.5, prettier@^2.1.2:
   version "2.5.1"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.5.1.tgz#fff75fa9d519c54cf0fce328c1017d94546bc56a"
   integrity sha512-vBZcPRUR5MZJwoyi3ZoyQlc1rXeEck8KgeC9AwwOn+exuxLxq5toTRDTSaVrXHxelDMHy9zlicw8u66yxoSUFg==
+
+prettier@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.0.1.tgz#65271fc9320ce4913c57747a70ce635b30beaa40"
+  integrity sha512-fcOWSnnpCrovBsmFZIGIy9UqK2FaI7Hqax+DIO0A9UxeVoY4iweyaFjS5TavZN97Hfehph0nhsZnjlVKzEQSrQ==
 
 printj@~1.3.1:
   version "1.3.1"
@@ -10264,6 +10269,13 @@ underscore@1.9.1:
   version "1.9.1"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.9.1.tgz#06dce34a0e68a7babc29b365b8e74b8925203961"
   integrity sha512-5/4etnCkd9c8gwgowi5/om/mYO5ajCaOgdzj/oW+0eQV9WxKBDZw5+ycmKmeaTXjInS/W0BzpGLo2xR2aBwZdg==
+
+undici@^5.14.0:
+  version "5.16.0"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-5.16.0.tgz#6b64f9b890de85489ac6332bd45ca67e4f7d9943"
+  integrity sha512-KWBOXNv6VX+oJQhchXieUznEmnJMqgXMbs0xxH2t8q/FUAWSJvOSr/rMaZKnX5RIVq7JDn0JbP4BOnKG2SGXLQ==
+  dependencies:
+    busboy "^1.6.0"
 
 undici@^5.4.0:
   version "5.12.0"

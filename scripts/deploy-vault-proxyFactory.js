@@ -1,22 +1,25 @@
-const hardhat = require("hardhat");
-
-const ethers = hardhat.ethers;
+import hardhat, { ethers, } from "hardhat";
 
 async function main() {
   await hardhat.run("compile");
 
-  const BeefyVaultV7ProxyFactory = await ethers.getContractFactory("BeefyVaultV7ProxyFactory");
+  //first deploy an instance
+  const BeefyVaultV7 = await ethers.getContractFactory("BeefyVaultV7");
+  console.log("Deploying: BeefyVaultV7");
+  const beefyVaultV7 = await BeefyVaultV7.deploy();
+  await beefyVaultV7.deployed();
+  console.log("BeefyVaultV7", beefyVaultV7.address);
 
-  console.log("Deploying: BeefyVaultV7ProxyFactory");
-
-  const beefyVaultV7ProxyFactory = await BeefyVaultV7ProxyFactory.deploy();
-  await beefyVaultV7ProxyFactory.deployed();
-
-  console.log("BeefyVaultV7ProxyFactory", beefyVaultV7ProxyFactory.address);
+  //then deploy the factory with that instance
+  const BeefyVaultV7Factory = await ethers.getContractFactory("BeefyVaultV7Factory");
+  console.log("Deploying: BeefyVaultV7Factory");
+  const beefyVaultV7Factory = await BeefyVaultV7Factory.deploy(beefyVaultV7.address);
+  await beefyVaultV7Factory.deployed();
+  console.log("BeefyVaultV7Factory", beefyVaultV7Factory.address);
 
   await hardhat.run("verify:verify", {
-    address: beefyVaultV7ProxyFactory.address,
-    constructorArguments: [],
+    address: beefyVaultV7Factory.address,
+    constructorArguments: [beefyVaultV7.address],
   })
 }
 

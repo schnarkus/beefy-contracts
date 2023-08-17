@@ -34,8 +34,9 @@ const config: DeploymentConfig = {
       accounts,
     },
     bsc: {
-      url: process.env.BSC_RPC || "https://rpc.ankr.com/bsc",
+      url: process.env.BSC_RPC || "https://bsc-dataseed1.binance.org",
       chainId: 56,
+      gasMultiplier: 2,
       accounts,
     },
     heco: {
@@ -49,12 +50,13 @@ const config: DeploymentConfig = {
       accounts,
     },
     polygon: {
-      url: process.env.POLYGON_RPC || "https://rpc.ankr.com/polygon",
+      url: process.env.POLYGON_RPC || "https://polygon.llamarpc.com",
       chainId: 137,
+      gasMultiplier: 100,
       accounts,
     },
     fantom: {
-      url: process.env.FANTOM_RPC || "https://rpc.ankr.com/fantom",
+      url: process.env.FANTOM_RPC || "https://rpc.ftm.tools",
       chainId: 250,
       accounts,
     },
@@ -130,20 +132,40 @@ const config: DeploymentConfig = {
       accounts,
     },
     optimism: {
-      url: process.env.OPTIMISM_RPC || "https://rpc.ankr.com/optimism",
+      url: process.env.OPTIMISM_RPC || "https://optimism.meowrpc.com",
       chainId: 10,
       accounts,
     },
+    base: {
+      url: process.env.OPTIMISM_RPC || "https://base.blockpi.network/v1/rpc/public",
+      chainId: 8453,
+      gasMultiplier: 0.1,
+      accounts,
+    },
     kava: {
-      url: process.env.KAVA_RPC || "https://evm.kava.io",
+      url: process.env.KAVA_RPC || "https://evm2.kava.io",
       chainId: 2222,
+      gasMultiplier: 10,
       accounts,
     },
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
-    apiKey: process.env.API_KEY,
+    apiKey: {
+      kava: "api key is not required by the Kava explorer, but can't be empty",
+      opera: "3R44JA94ATTCDN1S88GGKGZR8Q76K6ZBD3",
+      bsc: "JCB67ISDI9FYJ6DC3RJFDVH5AZ3PTRTX95",
+      polygon: "2DJYB7G1D3WGIFT1SY7FGXFFN85UUCD4AV",
+    },
+    customChains: [
+      {
+        network: "kava",
+        chainId: 2222,
+        urls: {
+          apiURL: "https://explorer.kava.io/api",
+          browserURL: "https://explorer.kava.io/"
+        }
+      }
+    ]
   },
   solidity: {
     compilers: [

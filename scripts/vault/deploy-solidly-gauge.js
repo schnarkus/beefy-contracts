@@ -2,62 +2,50 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import { predictAddresses } from "../../utils/predictAddresses";
 
-
-const registerSubsidy = require("../../utils/registerSubsidy");
-
 const {
-  platforms: {  spiritswap, beefyfinance },
+  platforms: { beethovenx, beefyfinance },
   tokens: {
-    SPIRIT: { address: SPIRIT},
-    BIFI: { address: BIFI },
+    BEETS: { address: BEETS },
     FTM: { address: FTM },
     USDC: { address: USDC },
-    MIM: { address: MIM },
-    gALCX: { address: gALCX },
-    CRE8R: { address: CRE8R },
-    alUSD: { address: alUSD },
-    MAI: { address: MAI },
-    ETH:  { addresss: ETH }
+    DEUS: { address: DEUS },
   },
 } = addressBook.fantom;
 
-
-const want = web3.utils.toChecksumAddress("0x364705F8D0744230f39BC176e0270d90dbc72E50");
-const gauge = web3.utils.toChecksumAddress("0x9F0FeB56184f28043f8159af4238cE179D97cBA5");
 const binSpiritGauge = web3.utils.toChecksumAddress("0x44e314190D9E4cE6d4C0903459204F8E21ff940A");
-//const ensId = ethers.utils.formatBytes32String("cake.eth");
 
 const vaultParams = {
-  mooName: "Moo SpiritV2 MIM-USDC",
-  mooSymbol: "mooSpiritV2MIM-USDC",
+  mooName: "Moo Beets Another DEI, another dollar",
+  mooSymbol: "mooBeetsAnotherDEIAnotherDollar",
   delay: 21600,
 };
 
 const strategyParams = {
-  want: want,
-  gauge: gauge,
-  unirouter: spiritswap.router,
+  balancerPoolIds: [
+    "0x4e415957aa4fd703ad701e43ee5335d1d7891d8300020000000000000000053b",
+    "0xcde5a11a4acb4ee4c805352cec57e236bdbc3837000200000000000000000019"],
+  chefPoolId: 96,
+  chef: beethovenx.masterchef,
+  unirouter: beethovenx.router,
   gaugeStaker: binSpiritGauge,
   strategist: process.env.STRATEGIST_ADDRESS, // some address
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
-  feeConfig: beefyfinance.beefyFeeConfig,
-  outputToNativeRoute: [[SPIRIT, FTM, false]],
-  outputToLp0Route: [[SPIRIT, FTM, false],[FTM, USDC, false]],
-  outputToLp1Route: [[SPIRIT, SPIRIT, false],[FTM, USDC, false],[USDC, MIM, true]],
-  verifyStrat: false,
-  spiritswapStrat: true,
-  gaugeStakerStrat: true
- // ensId
+  beefyFeeConfig: beefyfinance.beefyFeeConfig,
+  secondOutputToNativeRoute: [DEUS, FTM],
+  nativeToInputRoute: [FTM, USDC],
+  verifyStrat: true,
+  spiritswapStrat: false,
+  gaugeStakerStrat: false
 };
 
 const contractNames = {
   vault: "BeefyVaultV6",
-  strategy: strategyParams.gaugeStakerStrat ? "StrategyCommonSolidlyStakerLP" : "StrategyCommonSolidlyGaugeLP",
+  strategy: "StrategyBeethovenXDualRewards",
 };
 
 async function main() {
- if (
+  if (
     Object.values(vaultParams).some(v => v === undefined) ||
     Object.values(strategyParams).some(v => v === undefined) ||
     Object.values(contractNames).some(v => v === undefined)
@@ -96,32 +84,32 @@ async function main() {
       strategyParams.keeper,
       strategyParams.strategist,
       strategyParams.beefyFeeRecipient,
-      strategyParams.feeConfig,
+      strategyParams.beefyFeeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route
   ];
 
   const strategyConstructorArguments = [
-    strategyParams.want,
-    strategyParams.gauge,
+    strategyParams.balancerPoolIds,
+    strategyParams.chefPoolId,
+    strategyParams.chef,
     [
       vault.address,
       strategyParams.unirouter,
       strategyParams.keeper,
       strategyParams.strategist,
       strategyParams.beefyFeeRecipient,
-      strategyParams.feeConfig,
+      strategyParams.beefyFeeConfig,
     ],
-    strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
-    strategyParams.outputToLp1Route
+    strategyParams.secondOutputToNativeRoute,
+    strategyParams.nativeToInputRoute,
   ];
 
-  const strategy = strategyParams.gaugeStakerStrat 
-    ? await Strategy.deploy(...strategyConstructorArgumentsStaker) 
-    : await Strategy.deploy(...strategyConstructorArguments); 
+  const strategy = strategyParams.gaugeStakerStrat
+    ? await Strategy.deploy(...strategyConstructorArgumentsStaker)
+    : await Strategy.deploy(...strategyConstructorArguments);
   await strategy.deployed();
 
   // add this info to PR
@@ -135,7 +123,7 @@ async function main() {
   console.log("Running post deployment");
 
 
- // await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
+  // await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
   await vault.transferOwnership(beefyfinance.vaultOwner);
   console.log(`Transfered Vault Ownership to ${beefyfinance.vaultOwner}`);
 
@@ -144,10 +132,6 @@ async function main() {
     await strategy.setSpiritHarvest(true);
   }
 
-  if (hardhat.network.name === "bsc") {
-    await registerSubsidy(vault.address, deployer);
-    await registerSubsidy(strategy.address, deployer);
-  }
 
   if (strategyParams.verifyStrat) {
     console.log("verifying contract...")
