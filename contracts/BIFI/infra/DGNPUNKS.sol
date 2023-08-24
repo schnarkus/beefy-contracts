@@ -10,7 +10,7 @@ import "@openzeppelin-4/contracts/utils/Counters.sol";
 import "@openzeppelin-4/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin-4/contracts/security/ReentrancyGuard.sol";
 
-contract DGNAPES is ERC721, Ownable, IERC2981, ReentrancyGuard {
+contract DGNPUNKS is ERC721, Ownable, IERC2981, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Strings for uint256;
     using Counters for Counters.Counter;
@@ -18,20 +18,21 @@ contract DGNAPES is ERC721, Ownable, IERC2981, ReentrancyGuard {
     Counters.Counter private _tokenIdCounter;
 
     uint256 public constant MAX_SUPPLY = 100;
-    uint256 public constant PRICE = 69 * 10 ** 18; // 69 DGN per mint
+    uint256 public constant PRICE = 69 * 10 ** 18;
     uint256 public constant MAX_PER_TX = 4;
     uint256 public constant ROYALTY_FEE_PERCENT = 1;
 
     string public baseURI;
+    string public baseExtension = ".json";
 
     bool public mintStarted = true;
 
     address public royaltyReceiver;
     IERC20 public paymentToken;
 
-    constructor(address _paymentToken) ERC721("Degen Apes", "DGNAPES") {
+    constructor(address _paymentToken) ERC721("Degen Punks", "DGNPUNKS") {
         royaltyReceiver = 0xc8f566901B02Bf19154ce056977c814569693EE3;
-        baseURI = "ipfs://QmbwLFStvBUJooYqhuQZKfn56E9cnX4FezC5ZHcYzjELD3/";
+        baseURI = "ipfs://QmNbc4dRTQisArFkr7LebztAwCiD4LbC4zcTCrQEsadSZp/";
         paymentToken = IERC20(_paymentToken);
     }
 
@@ -71,6 +72,17 @@ contract DGNAPES is ERC721, Ownable, IERC2981, ReentrancyGuard {
         uint newTokenID = _tokenIdCounter.current() + 1;
         _safeMint(msg.sender, newTokenID);
         _tokenIdCounter.increment();
+    }
+
+    // add .json to token uri
+
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        string memory currentBaseURI = _baseURI();
+        return
+            bytes(currentBaseURI).length > 0
+                ? string(abi.encodePacked(currentBaseURI, tokenId.toString(), baseExtension))
+                : "";
     }
 
     // minting

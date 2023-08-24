@@ -2,7 +2,7 @@ const { getContractAddress } = require("@openzeppelin/hardhat-upgrades/dist/util
 const hardhat = require("hardhat");
 const ethers = hardhat.ethers;
 
-const contractName = "DGNAPES";
+const contractName = "DGNPUNKS";
 
 async function main() {
   await hardhat.run("compile");

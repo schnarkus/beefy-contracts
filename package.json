@@ -49,7 +49,7 @@
     "zap": "hardhat run scripts/infra/deployZap.js --network fantom",
     "approve": "hardhat run scripts/manage/approve.js --network fantom",
     "distribute": "hardhat run scripts/manage/distribute.js --network base",
-    "flat-hardhat": "hardhat flatten contracts/BIFI/infra/DGNAPES.sol > tmp/flattened.sol",
+    "flat-hardhat": "hardhat flatten contracts/BIFI/infra/DGNPUNKS.sol > tmp/flattened.sol",
     "flat": "bin/flatten.sh",
     "flat:chain": "bin/flattenChainContracts.sh",
     "abi-to-sol": "abi-to-sol",
