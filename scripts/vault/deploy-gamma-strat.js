@@ -9,15 +9,15 @@ import stratChefAbi from "../../artifacts/contracts/BIFI/strategies/Gamma/Strate
 const {
   platforms: { quickswap, beefyfinance },
   tokens: {
-    ETH: {address: ETH},
-    USDC: {address: USDC},
-    MATIC: {address: MATIC},
-    WBTC: {address: WBTC},
-    USDT: { address: USDT},
-    newQUICK: {address: newQUICK},
+    ETH: { address: ETH },
+    USDC: { address: USDC },
+    MATIC: { address: MATIC },
+    WBTC: { address: WBTC },
+    USDT: { address: USDT },
+    newQUICK: { address: newQUICK },
     MaticX: { address: MaticX },
     stMATIC: { address: stMATIC },
-    SD: {address: SD}
+    SD: { address: SD }
   },
 } = addressBook.polygon;
 
@@ -50,14 +50,14 @@ const strategyParams = {
   strategyChefImplementation: "0x5Dda0D7ef00E0b3A30EDf9Ab1132D463d7A0b355",
   useVaultProxy: true,
   chefStrat: true,
-  addReward: false, 
-  rewardToken: SD, 
+  addReward: false,
+  rewardToken: SD,
   rewardPath: ethers.utils.solidityPack(["address", "address", "address"], [SD, USDC, MATIC])
- // ensId
+  // ensId
 };
 
 async function main() {
- if (
+  if (
     Object.values(vaultParams).some(v => v === undefined) ||
     Object.values(strategyParams).some(v => v === undefined)
   ) {
@@ -74,16 +74,16 @@ async function main() {
   let tx = await factory.cloneVault();
   tx = await tx.wait();
   tx.status === 1
-  ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
-  : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
+    ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
+    : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
 
   let implementation = strategyParams.chefStrat ? strategyParams.strategyChefImplementation : strategyParams.strategyImplementation;
   let strat = await factory.callStatic.cloneContract(implementation);
   let stratTx = await factory.cloneContract(implementation);
   stratTx = await stratTx.wait();
   stratTx.status === 1
-  ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
-  : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
+    ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
+    : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
 
   const vaultConstructorArguments = [
     strat,
@@ -96,28 +96,28 @@ async function main() {
   let vaultInitTx = await vaultContract.initialize(...vaultConstructorArguments);
   vaultInitTx = await vaultInitTx.wait()
   vaultInitTx.status === 1
-  ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   vaultInitTx = await vaultContract.transferOwnership(beefyfinance.vaultOwner);
   vaultInitTx = await vaultInitTx.wait()
   vaultInitTx.status === 1
-  ? console.log(`Vault OwnershipTransfered done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault OwnershipTransferred done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   const strategyConstructorArguments = [
     strategyParams.want,
     strategyParams.rewardPool,
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route,
     [
-        vault,
-        strategyParams.unirouter,
-        strategyParams.keeper,
-        strategyParams.strategist,
-        strategyParams.beefyFeeRecipient,
-        strategyParams.feeConfig,
+      vault,
+      strategyParams.unirouter,
+      strategyParams.keeper,
+      strategyParams.strategist,
+      strategyParams.beefyFeeRecipient,
+      strategyParams.feeConfig,
     ]
   ];
 
@@ -126,15 +126,15 @@ async function main() {
     strategyParams.chef,
     strategyParams.pid,
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route,
     [
-        vault,
-        strategyParams.unirouter,
-        strategyParams.keeper,
-        strategyParams.strategist,
-        strategyParams.beefyFeeRecipient,
-        strategyParams.feeConfig,
+      vault,
+      strategyParams.unirouter,
+      strategyParams.keeper,
+      strategyParams.strategist,
+      strategyParams.beefyFeeRecipient,
+      strategyParams.feeConfig,
     ]
   ];
 
@@ -144,15 +144,15 @@ async function main() {
   let stratInitTx = await stratContract.initialize(...args);
   stratInitTx = await stratInitTx.wait()
   stratInitTx.status === 1
-  ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
-  : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
+    ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
+    : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
 
   if (strategyParams.addReward) {
     stratInitTx = await stratContract.addReward(strategyParams.rewardToken, strategyParams.rewardPath);
     stratInitTx = await stratInitTx.wait()
     stratInitTx.status === 1
-    ? console.log(`Adding Rewards done with tx: ${stratInitTx.transactionHash}`)
-    : console.log(`Adding Reward failed with tx: ${stratInitTx.transactionHash}`);
+      ? console.log(`Adding Rewards done with tx: ${stratInitTx.transactionHash}`)
+      : console.log(`Adding Reward failed with tx: ${stratInitTx.transactionHash}`);
   }
 }
 

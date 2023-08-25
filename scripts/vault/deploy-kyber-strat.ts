@@ -7,9 +7,9 @@ import stratAbi from "../../artifacts/contracts/BIFI/strategies/Kyber/StrategyKy
 const {
   platforms: { beefyfinance },
   tokens: {
-    WETHe: {address: ETH},
-    AVAX: { address: AVAX},
-    MAI: { address: MAI},
+    WETHe: { address: ETH },
+    AVAX: { address: AVAX },
+    MAI: { address: MAI },
     USDC: { address: USDC },
   },
 } = addressBook.avax;
@@ -66,15 +66,15 @@ async function main() {
   let tx = await factory.cloneVault();
   tx = await tx.wait();
   tx.status === 1
-  ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
-  : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
+    ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
+    : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
 
   let strat = await factory.callStatic.cloneContract(strategyParams.strategyImplementation);
   let stratTx = await factory.cloneContract(strategyParams.strategyImplementation);
   stratTx = await stratTx.wait();
   stratTx.status === 1
-  ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
-  : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
+    ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
+    : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
 
   const vaultConstructorArguments = [
     strat,
@@ -87,14 +87,14 @@ async function main() {
   let vaultInitTx = await vaultContract.initialize(...vaultConstructorArguments);
   vaultInitTx = await vaultInitTx.wait()
   vaultInitTx.status === 1
-  ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   vaultInitTx = await vaultContract.transferOwnership(beefyfinance.vaultOwner);
   vaultInitTx = await vaultInitTx.wait()
   vaultInitTx.status === 1
-  ? console.log(`Vault OwnershipTransfered done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault OwnershipTransferred done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   const strategyConstructorArguments = [
     strategyParams.want,
@@ -104,11 +104,11 @@ async function main() {
     strategyParams.pid,
     strategyParams.paths,
     [vault,
-    strategyParams.unirouter,
-    strategyParams.keeper,
-    strategyParams.strategist,
-    strategyParams.beefyFeeRecipient,
-    strategyParams.beefyFeeConfig],
+      strategyParams.unirouter,
+      strategyParams.keeper,
+      strategyParams.strategist,
+      strategyParams.beefyFeeRecipient,
+      strategyParams.beefyFeeConfig],
   ];
 
   //console.log(...strategyConstructorArguments);
@@ -117,16 +117,16 @@ async function main() {
   let stratInitTx = await stratContract.initialize(...strategyConstructorArguments);
   stratInitTx = await stratInitTx.wait()
   stratInitTx.status === 1
-  ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
-  : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
-/*
-  stratInitTx = await stratContract.addRewardToken(OP, [[ethers.constants.AddressZero], [ethers.constants.AddressZero], rewardPath, true, 100]);
-  stratInitTx = await stratInitTx.wait()
-  stratInitTx.status === 1
-  ? console.log(`Reward Added done with tx: ${stratInitTx.transactionHash}`)
-  : console.log(`Reward Added failed with tx: ${stratInitTx.transactionHash}`);
-  // add this info to PR
-*/
+    ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
+    : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
+  /*
+    stratInitTx = await stratContract.addRewardToken(OP, [[ethers.constants.AddressZero], [ethers.constants.AddressZero], rewardPath, true, 100]);
+    stratInitTx = await stratInitTx.wait()
+    stratInitTx.status === 1
+    ? console.log(`Reward Added done with tx: ${stratInitTx.transactionHash}`)
+    : console.log(`Reward Added failed with tx: ${stratInitTx.transactionHash}`);
+    // add this info to PR
+  */
 
 }
 

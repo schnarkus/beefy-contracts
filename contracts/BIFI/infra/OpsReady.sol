@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "../interfaces/common/IOps.sol";
 
 /**
- * @dev Modified so only ETH/FTM is transfered
+ * @dev Modified so only ETH/FTM is transferred
  */
 abstract contract OpsReady {
     address public immutable ops;

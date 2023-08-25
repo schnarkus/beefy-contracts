@@ -6,9 +6,9 @@ import { predictAddresses } from "../../utils/predictAddresses";
 const registerSubsidy = require("../../utils/registerSubsidy");
 
 const {
-  platforms: {  spiritswap, beefyfinance },
+  platforms: { spiritswap, beefyfinance },
   tokens: {
-    SPIRIT: { address: SPIRIT},
+    SPIRIT: { address: SPIRIT },
     BIFI: { address: BIFI },
     FTM: { address: FTM },
     USDC: { address: USDC },
@@ -17,7 +17,7 @@ const {
     CRE8R: { address: CRE8R },
     alUSD: { address: alUSD },
     MAI: { address: MAI },
-    ETH:  { addresss: ETH }
+    ETH: { addresss: ETH }
   },
 } = addressBook.fantom;
 
@@ -43,12 +43,12 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [[SPIRIT, FTM, false]],
-  outputToLp0Route: [[SPIRIT, FTM, false],[FTM, USDC, false]],
-  outputToLp1Route: [[SPIRIT, SPIRIT, false],[FTM, USDC, false],[USDC, MIM, true]],
+  outputToLp0Route: [[SPIRIT, FTM, false], [FTM, USDC, false]],
+  outputToLp1Route: [[SPIRIT, SPIRIT, false], [FTM, USDC, false], [USDC, MIM, true]],
   verifyStrat: false,
   spiritswapStrat: true,
   gaugeStakerStrat: true
- // ensId
+  // ensId
 };
 
 const contractNames = {
@@ -57,7 +57,7 @@ const contractNames = {
 };
 
 async function main() {
- if (
+  if (
     Object.values(vaultParams).some(v => v === undefined) ||
     Object.values(strategyParams).some(v => v === undefined) ||
     Object.values(contractNames).some(v => v === undefined)
@@ -99,7 +99,7 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route
   ];
 
@@ -115,13 +115,13 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route
   ];
 
-  const strategy = strategyParams.gaugeStakerStrat 
-    ? await Strategy.deploy(...strategyConstructorArgumentsStaker) 
-    : await Strategy.deploy(...strategyConstructorArguments); 
+  const strategy = strategyParams.gaugeStakerStrat
+    ? await Strategy.deploy(...strategyConstructorArgumentsStaker)
+    : await Strategy.deploy(...strategyConstructorArguments);
   await strategy.deployed();
 
   // add this info to PR
@@ -135,9 +135,9 @@ async function main() {
   console.log("Running post deployment");
 
 
- // await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
+  // await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
   await vault.transferOwnership(beefyfinance.vaultOwner);
-  console.log(`Transfered Vault Ownership to ${beefyfinance.vaultOwner}`);
+  console.log(`Transferred Vault Ownership to ${beefyfinance.vaultOwner}`);
 
   if (strategyParams.spiritswapStrat) {
     console.log(`Setting Spirit Harvest to True`);

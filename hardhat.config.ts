@@ -65,7 +65,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     arbitrum: {
-      url: process.env.ARBITRUM_RPC || "https://arb1.arbitrum.io/rpc",
+      url: process.env.ARBITRUM_RPC || "https://arbitrum-one.publicnode.com",
       chainId: 42161,
       accounts,
     },
@@ -131,7 +131,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     optimism: {
-      url: process.env.OPTIMISM_RPC || "https://rpc.ankr.com/optimism",
+      url: process.env.OPTIMISM_RPC || "https://optimism.blockpi.network/v1/rpc/public",
       chainId: 10,
       accounts,
     },

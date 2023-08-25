@@ -113,7 +113,7 @@ async function main() {
   vaultInitTx = await vaultContract.transferOwnership(beefyfinance.vaultOwner);
   vaultInitTx = await vaultInitTx.wait();
   vaultInitTx.status === 1
-    ? console.log(`Vault OwnershipTransfered done with tx: ${vaultInitTx.transactionHash}`)
+    ? console.log(`Vault OwnershipTransferred done with tx: ${vaultInitTx.transactionHash}`)
     : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   // add this info to PR

@@ -54,7 +54,7 @@ describe("StratUpgrade", () => {
   }).timeout(TIMEOUT);
 
   it("Upgrades correctly", async () => {
-    // check that balances are transfered correctly.
+    // check that balances are transferred correctly.
     console.log("Checking Balances");
     const vaultBal = await vault.balance();
     const strategyBal = await strategy.balanceOf();

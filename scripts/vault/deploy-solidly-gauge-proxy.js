@@ -8,16 +8,16 @@ import stratStakerAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/S
 const {
   platforms: { thena, beefyfinance },
   tokens: {
-    THE: {address: THE},
+    THE: { address: THE },
     USDC: { address: USDC },
-    BUSD: {address: BUSD},
-    BNB: {address: BNB}, 
-    ETH: {address: ETH},
-    MAI: {address: MAI},
-    USDT: {address: USDT},
-    BTCB: {address: BTCB},
-    BNBx: {address: BNBx},
-    FRAX: { address: FRAX}
+    BUSD: { address: BUSD },
+    BNB: { address: BNB },
+    ETH: { address: ETH },
+    MAI: { address: MAI },
+    USDT: { address: USDT },
+    BTCB: { address: BTCB },
+    BNBx: { address: BNBx },
+    FRAX: { address: FRAX }
   },
 } = addressBook.bsc;
 
@@ -43,7 +43,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [[THE, BNB, false]],
-  outputToLp0Route: [[THE, BNB, false],[BNB, BNBx, false]],
+  outputToLp0Route: [[THE, BNB, false], [BNB, BNBx, false]],
   outputToLp1Route: [[THE, BNB, false]],
   verifyStrat: false,
   spiritswapStrat: false,
@@ -52,11 +52,11 @@ const strategyParams = {
   strategyImplementation: "0xd1B5A6078B04b4BED9bF656b055c3721833972ba",
   strategyImplementationStaker: "0xC3d5c128a3e5b F60C6Fb87A4B644B6a2D8093f55",
   useVaultProxy: true,
- // ensId
+  // ensId
 };
 
 async function main() {
- if (
+  if (
     Object.values(vaultParams).some(v => v === undefined) ||
     Object.values(strategyParams).some(v => v === undefined)
   ) {
@@ -73,15 +73,15 @@ async function main() {
   let tx = await factory.cloneVault();
   tx = await tx.wait();
   tx.status === 1
-  ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
-  : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
+    ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
+    : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
 
   let strat = await factory.callStatic.cloneContract(strategyParams.strategyImplementation);
   let stratTx = await factory.cloneContract(strategyParams.gaugeStakerStrat ? strategyParams.strategyImplementationStaker : strategyParams.strategyImplementation);
   stratTx = await stratTx.wait();
   stratTx.status === 1
-  ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
-  : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
+    ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
+    : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
 
   const vaultConstructorArguments = [
     strat,
@@ -95,14 +95,14 @@ async function main() {
   let vaultInitTx = await vaultContract.initialize(...vaultConstructorArguments);
   vaultInitTx = await vaultInitTx.wait()
   vaultInitTx.status === 1
-  ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   vaultInitTx = await vaultContract.transferOwnership(beefyfinance.vaultOwner);
   vaultInitTx = await vaultInitTx.wait()
   vaultInitTx.status === 1
-  ? console.log(`Vault OwnershipTransfered done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault OwnershipTransferred done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   const strategyConstructorArgumentsStaker = [
     strategyParams.want,
@@ -117,7 +117,7 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route
   ];
 
@@ -133,18 +133,18 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
+    strategyParams.outputToLp0Route,
     strategyParams.outputToLp1Route
   ];
 
-  let abi = strategyParams.gaugeStakerStrat  ? stratStakerAbi.abi : stratAbi.abi;
+  let abi = strategyParams.gaugeStakerStrat ? stratStakerAbi.abi : stratAbi.abi;
   const stratContract = await ethers.getContractAt(abi, strat);
-  let args = strategyParams.gaugeStakerStrat  ? strategyConstructorArgumentsStaker : strategyConstructorArguments
+  let args = strategyParams.gaugeStakerStrat ? strategyConstructorArgumentsStaker : strategyConstructorArguments
   let stratInitTx = await stratContract.initialize(...args);
   stratInitTx = await stratInitTx.wait()
   stratInitTx.status === 1
-  ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
-  : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
+    ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
+    : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
 }
 
 main()

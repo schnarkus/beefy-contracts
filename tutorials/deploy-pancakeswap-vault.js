@@ -107,7 +107,7 @@ async function main() {
   await setPendingRewardsFunctionName(strategy, strategyParams.pendingRewardsFunctionName);
 
   await vault.transferOwnership(beefyfinance.vaultOwner);
-  console.log(`Transfered Vault Ownership to ${beefyfinance.vaultOwner}`);
+  console.log(`Transferred Vault Ownership to ${beefyfinance.vaultOwner}`);
 
   if (hardhat.network.name === "bsc") {
     await registerSubsidy(vault.address, deployer);

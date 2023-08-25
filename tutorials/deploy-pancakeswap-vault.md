@@ -85,7 +85,7 @@ UPGRADER_PK=59c699...
 
     Running post deployment
     Setting pendingRewardsFunctionName to 'pendingCake'
-    Transfered Vault Ownership to 0xA2E6391486670D2f1519461bcc915E4818aD1c9a
+    Transferred Vault Ownership to 0xA2E6391486670D2f1519461bcc915E4818aD1c9a
     ```
 
 11. From here I recommend writing/running your own set of tests to ensure everything was deployed properly. We recommend reviewing the `test/prod/VaultLifecycle.test.js` test script to get started. When ready you can run your tests using the following command `npx hardhat test --network localhost <PATH_TO_YOUR_TEST>`.
