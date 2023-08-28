@@ -2,23 +2,34 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraSideChainOmnichainSwap.sol/StrategyAuraSideChainOmnichainSwap.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyBalancerMultiReward.sol/StrategyBalancerMultiReward.json";
+
+// Import BigNumber from ethers
+const { BigNumber } = ethers;
+
+// Define the RouterType enum values
+const RouterType = {
+  BALANCER: BigNumber.from(0),
+  UNISWAP_V2: BigNumber.from(1),
+  UNISWAP_V3: BigNumber.from(2),
+};
 
 const {
-  platforms: { beethovenX, beefyfinance },
+  platforms: { balancer, beefyfinance },
   tokens: {
     BAL: { address: BAL },
     ETH: { address: ETH },
-    OP: { address: OP },
+    ARB: { address: ARB },
   },
-} = addressBook.optimism;
+} = addressBook.arbitrum;
 
-const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
-const want = web3.utils.toChecksumAddress("0x4Fd63966879300caFafBB35D157dC5229278Ed23");
+const want = web3.utils.toChecksumAddress("0x9791d590788598535278552EEcD4b211bFc790CB");
+const gauge = web3.utils.toChecksumAddress("0x260cbb867359a1084eC97de4157d06ca74e89415");
+const uniswapV3Router = web3.utils.toChecksumAddress("0xE592427A0AEce92De3Edee1F18E0157C05861564");
 
 const vaultParams = {
-  mooName: "Moo Dummy Aura RocketFuel",
-  mooSymbol: "mooDummyAuraRocketFuel",
+  mooName: "Moo Balancer Arb wstETH-ETH V3",
+  mooSymbol: "mooBalancerArbwstETH-ETHV3",
   delay: 21600,
 };
 
@@ -26,31 +37,23 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  aura: AURA,
-  inputIsComposable: false,
-  nativeToInputRoute: [["0x4fd63966879300cafafbb35d157dc5229278ed2300020000000000000000002b", 0, 0]],
-  outputToNativeRoute: [["0xd6e5824b54f64ce6f1161210bc17eebffc77e031000100000000000000000006", 0, 1], ["0x39965c9dab5448482cf7e002f583c812ceb53046000100000000000000000003", 1, 2]],
-  booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  swapper: "0x98Cbcd43f28bc0a7Bf058191dBe3AD3bD9B49FE6",
-  pid: 0,
-  nativeToInput: [ETH],
-  outputToNative: [BAL, OP, ETH],
-  unirouter: beethovenX.router,
+  inputIsComposable: true,
+  balSwapOn: false,
+  nativeToInputRoute: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1]],
+  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
+  nativeToInputAssets: [ETH, want],
+  outputToNativeAssets: [BAL, ETH],
+  rewardsGauge: gauge,
+  unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x16Ab7178b1B062A326C007a52E32A67218151b59",
-  extraReward: true,
+  strategyImplementation: "0xfdade480a80b6e8704be8b9a2900652cef895220",
   secondExtraReward: true,
-  rewardAssets: [AURA, BAL, ETH],
-  rewardRoute: [
-    ["", 0, 1],
-    ["", 1, 2],
-  ],
-  secondRewardAssets: [OP, ETH],
-  secondRewardRoute: [["", 0, 1]],
+  secondRewardAssets: [ARB, ETH],
+  secondRewardRoute: [["0xc764b55852f8849ae69923e45ce077a576bf9a8d0002000000000000000003d7", 0, 1]],
 };
 
 async function main() {
@@ -100,15 +103,15 @@ async function main() {
 
   const strategyConstructorArguments = [
     want,
-    strategyParams.aura,
     strategyParams.inputIsComposable,
+    strategyParams.balSwapOn,
     strategyParams.nativeToInputRoute,
     strategyParams.outputToNativeRoute,
-    strategyParams.booster,
-    strategyParams.swapper,
-    strategyParams.pid,
-    strategyParams.nativeToInput,
-    strategyParams.outputToNative,
+    [
+      strategyParams.outputToNativeAssets,
+      strategyParams.nativeToInputAssets
+    ],
+    strategyParams.rewardsGauge,
     [
       vault,
       strategyParams.unirouter,
@@ -131,15 +134,17 @@ async function main() {
   if (strategyParams.secondExtraReward) {
     stratInitTx = await stratContract.addRewardToken(
       strategyParams.secondRewardAssets[0],
+      uniswapV3Router,
+      RouterType.UNISWAP_V3, // Use the enum value directly as a BigNumber
       [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
       ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"],
-      ethers.utils.solidityPack(["address", "uint24", "address"], [OP, 500, ETH]),
+      ethers.utils.solidityPack(["address", "uint24", "address"], [ARB, 500, ETH]),
       100
     );
     stratInitTx = await stratInitTx.wait();
     stratInitTx.status === 1
-      ? console.log(`OP Reward Added with tx: ${stratInitTx.transactionHash}`)
-      : console.log(`OP Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
+      ? console.log(`ARB Reward Added with tx: ${stratInitTx.transactionHash}`)
+      : console.log(`ARB Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
   }
 }
 

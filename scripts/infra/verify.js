@@ -4,8 +4,8 @@ const { startingEtherPerAccount } = require("../../utils/configInit");
 
 const ethers = hardhat.ethers;
 
-const contractName = "StrategyAuraSideChain";
-const address = "0xaa01fcf32dbf4b6d539e724ec5d88589db9d2228";
+const contractName = "StrategyBalancerMultiReward";
+const address = "0xfdade480a80b6e8704be8b9a2900652cef895220";
 
 async function main() {
     await hardhat.run("compile");

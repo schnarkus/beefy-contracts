@@ -165,6 +165,7 @@ const config: DeploymentConfig = {
       zkevm: process.env.ZKEVM_API_KEY!,
       bsc: process.env.BSC_API_KEY!,
       optimisticEthereum: process.env.OPTIMISM_API_KEY!,
+      arbitrumOne: process.env.ARBITRUM_API_KEY!,
       base: process.env.BASE_API_KEY!,
     },
     customChains: [

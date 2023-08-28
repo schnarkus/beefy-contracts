@@ -4,7 +4,7 @@ const { startingEtherPerAccount } = require("../../utils/configInit");
 
 const ethers = hardhat.ethers;
 
-const contractName = "StrategyAuraSideChain";
+const contractName = "StrategyBalancerMultiReward";
 
 const config = {};
 
