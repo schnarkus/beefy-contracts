@@ -3,8 +3,8 @@ const hre = require("hardhat");
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
-  const tokenAddress = "0x4Fd63966879300caFafBB35D157dC5229278Ed23";
-  const spenderAddress = "0x21437E0a8244D79032B9a01BC635D85a55C82852";
+  const tokenAddress = "0x9791d590788598535278552EEcD4b211bFc790CB";
+  const spenderAddress = "0x85B10228cd93A6e5E354Ff0f2c60875E8E62F65A";
 
   const tokenAbi = ["function approve(address spender, uint256 amount) external returns (bool)"];
 

@@ -20,17 +20,16 @@ const {
     BAL: { address: BAL },
     ETH: { address: ETH },
     ARB: { address: ARB },
-    USDCe: { address: USDCe },
   },
 } = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0x423A1323c871aBC9d89EB06855bF5347048Fc4A5");
-const gauge = web3.utils.toChecksumAddress("0xa14453084318277b11d38FbE05D857A4f647442B");
+const want = web3.utils.toChecksumAddress("0xadE4A71BB62bEc25154CFc7e6ff49A513B491E81");
+const gauge = web3.utils.toChecksumAddress("0xd6B875d62c2661eaB66472F36c672e4B512f1135");
 const uniswapV3Router = web3.utils.toChecksumAddress("0xE592427A0AEce92De3Edee1F18E0157C05861564");
 
 const vaultParams = {
-  mooName: "Moo Balancer Arb 4POOL",
-  mooSymbol: "mooBalancerArb4POOL",
+  mooName: "Moo Balancer Arb ETH-rETH",
+  mooSymbol: "mooBalancerArbETH-rETH",
   delay: 21600,
 };
 
@@ -40,9 +39,9 @@ const strategyParams = {
   want: want,
   inputIsComposable: true,
   balSwapOn: false,
-  nativeToInputRoute: [["0x64541216bafffeec8ea535bb71fbc927831d0595000100000000000000000002", 0, 1], ["0x423a1323c871abc9d89eb06855bf5347048fc4a5000000000000000000000496", 1, 2]],
+  nativeToInputRoute: [["0xade4a71bb62bec25154cfc7e6ff49a513b491e81000000000000000000000497", 0, 1]],
   outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
-  nativeToInputAssets: [ETH, USDCe, want],
+  nativeToInputAssets: [ETH, want],
   outputToNativeAssets: [BAL, ETH],
   rewardsGauge: gauge,
   unirouter: balancer.router,
