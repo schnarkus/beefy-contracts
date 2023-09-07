@@ -12,7 +12,7 @@ import "../../interfaces/common/IERC20Extended.sol";
 import "../Common/StratFeeManagerInitializable.sol";
 import "../../utils/GasFeeThrottler.sol";
 
-contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeThrottler {
+contract StrategyVelodromeGaugeV2 is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
@@ -29,7 +29,7 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
     bool public stable;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
-    
+
     ISolidlyRouter.Route[] public outputToNativeRoute;
     ISolidlyRouter.Route[] public outputToLp0Route;
     ISolidlyRouter.Route[] public outputToLp1Route;
@@ -46,8 +46,8 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         ISolidlyRouter.Route[] calldata _outputToNativeRoute,
         ISolidlyRouter.Route[] calldata _outputToLp0Route,
         ISolidlyRouter.Route[] calldata _outputToLp1Route
-    )  public initializer  {
-         __StratFeeManager_init(_commonAddresses);
+    ) public initializer {
+        __StratFeeManager_init(_commonAddresses);
         want = _want;
         gauge = _gauge;
 
@@ -67,12 +67,11 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         }
 
         output = outputToNativeRoute[0].from;
-        native = outputToNativeRoute[outputToNativeRoute.length -1].to;
-        lpToken0 = outputToLp0Route[outputToLp0Route.length - 1].to;
-        lpToken1 = outputToLp1Route[outputToLp1Route.length - 1].to;
+        native = outputToNativeRoute[outputToNativeRoute.length - 1].to;
+        lpToken0 = ISolidlyPair(want).token0();
+        lpToken1 = ISolidlyPair(want).token1();
 
         _giveAllowances();
-        
     }
 
     // puts the funds to work
@@ -100,7 +99,7 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         }
 
         if (tx.origin != owner() && !paused()) {
-            uint256 withdrawalFeeAmount = wantBal * withdrawalFee / WITHDRAWAL_MAX;
+            uint256 withdrawalFeeAmount = (wantBal * withdrawalFee) / WITHDRAWAL_MAX;
             wantBal = wantBal - withdrawalFeeAmount;
         }
 
@@ -116,16 +115,12 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         }
     }
 
-    function harvest() external gasThrottle virtual {
+    function harvest() external virtual {
         _harvest(tx.origin);
     }
 
-    function harvest(address callFeeRecipient) external gasThrottle virtual {
+    function harvest(address callFeeRecipient) external virtual {
         _harvest(callFeeRecipient);
-    }
-
-    function managerHarvest() external onlyManager {
-        _harvest(tx.origin);
     }
 
     // compounds earnings and charges performance fee
@@ -146,18 +141,24 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
         IFeeConfig.FeeCategory memory fees = getFees();
-        uint256 toNative = IERC20(output).balanceOf(address(this)) * fees.total / DIVISOR;
-        ISolidlyRouter(unirouter).swapExactTokensForTokens(toNative, 0, outputToNativeRoute, address(this), block.timestamp);
+        uint256 toNative = (IERC20(output).balanceOf(address(this)) * fees.total) / DIVISOR;
+        ISolidlyRouter(unirouter).swapExactTokensForTokens(
+            toNative,
+            0,
+            outputToNativeRoute,
+            address(this),
+            block.timestamp
+        );
 
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
 
-        uint256 callFeeAmount = nativeBal * fees.call / DIVISOR;
+        uint256 callFeeAmount = (nativeBal * fees.call) / DIVISOR;
         IERC20(native).safeTransfer(callFeeRecipient, callFeeAmount);
 
-        uint256 beefyFeeAmount = nativeBal * fees.beefy / DIVISOR;
+        uint256 beefyFeeAmount = (nativeBal * fees.beefy) / DIVISOR;
         IERC20(native).safeTransfer(beefyFeeRecipient, beefyFeeAmount);
 
-        uint256 strategistFeeAmount = nativeBal * fees.strategist / DIVISOR;
+        uint256 strategistFeeAmount = (nativeBal * fees.strategist) / DIVISOR;
         IERC20(native).safeTransfer(strategist, strategistFeeAmount);
 
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
@@ -170,29 +171,64 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         uint256 lp1Amt = outputBal - lp0Amt;
 
         if (stable) {
-            uint256 lp0Decimals = 10**IERC20Extended(lpToken0).decimals();
-            uint256 lp1Decimals = 10**IERC20Extended(lpToken1).decimals();
-            uint256 out0 = lpToken0 != output ? ISolidlyRouter(unirouter).getAmountsOut(lp0Amt, outputToLp0Route)[outputToLp0Route.length] * 1e18 / lp0Decimals : lp0Amt;
-            uint256 out1 = lpToken1 != output ? ISolidlyRouter(unirouter).getAmountsOut(lp1Amt, outputToLp1Route)[outputToLp1Route.length] * 1e18 / lp1Decimals  : lp1Amt;
-            (uint256 amountA, uint256 amountB,) = ISolidlyRouter(unirouter).quoteAddLiquidity(lpToken0, lpToken1, stable, factory, out0, out1);
-            amountA = amountA * 1e18 / lp0Decimals;
-            amountB = amountB * 1e18 / lp1Decimals;
-            uint256 ratio = out0 * 1e18 / out1 * amountB / amountA;
-            lp0Amt = outputBal * 1e18 / (ratio + 1e18);
+            uint256 lp0Decimals = 10 ** IERC20Extended(lpToken0).decimals();
+            uint256 lp1Decimals = 10 ** IERC20Extended(lpToken1).decimals();
+            uint256 out0 = lpToken0 != output
+                ? (ISolidlyRouter(unirouter).getAmountsOut(lp0Amt, outputToLp0Route)[outputToLp0Route.length] * 1e18) /
+                    lp0Decimals
+                : lp0Amt;
+            uint256 out1 = lpToken1 != output
+                ? (ISolidlyRouter(unirouter).getAmountsOut(lp1Amt, outputToLp1Route)[outputToLp1Route.length] * 1e18) /
+                    lp1Decimals
+                : lp1Amt;
+            (uint256 amountA, uint256 amountB, ) = ISolidlyRouter(unirouter).quoteAddLiquidity(
+                lpToken0,
+                lpToken1,
+                stable,
+                factory,
+                out0,
+                out1
+            );
+            amountA = (amountA * 1e18) / lp0Decimals;
+            amountB = (amountB * 1e18) / lp1Decimals;
+            uint256 ratio = (((out0 * 1e18) / out1) * amountB) / amountA;
+            lp0Amt = (outputBal * 1e18) / (ratio + 1e18);
             lp1Amt = outputBal - lp0Amt;
         }
 
         if (lpToken0 != output) {
-            ISolidlyRouter(unirouter).swapExactTokensForTokens(lp0Amt, 0, outputToLp0Route, address(this), block.timestamp);
+            ISolidlyRouter(unirouter).swapExactTokensForTokens(
+                lp0Amt,
+                0,
+                outputToLp0Route,
+                address(this),
+                block.timestamp
+            );
         }
 
         if (lpToken1 != output) {
-            ISolidlyRouter(unirouter).swapExactTokensForTokens(lp1Amt, 0, outputToLp1Route, address(this), block.timestamp);
+            ISolidlyRouter(unirouter).swapExactTokensForTokens(
+                lp1Amt,
+                0,
+                outputToLp1Route,
+                address(this),
+                block.timestamp
+            );
         }
 
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
-        ISolidlyRouter(unirouter).addLiquidity(lpToken0, lpToken1, stable, lp0Bal, lp1Bal, 1, 1, address(this), block.timestamp);
+        ISolidlyRouter(unirouter).addLiquidity(
+            lpToken0,
+            lpToken1,
+            stable,
+            lp0Bal,
+            lp1Bal,
+            1,
+            1,
+            address(this),
+            block.timestamp
+        );
     }
 
     // calculate the total underlaying 'want' held by the strat.
@@ -221,10 +257,12 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         uint256 outputBal = rewardsAvailable();
         uint256 nativeOut;
         if (outputBal > 0) {
-            nativeOut = ISolidlyRouter(unirouter).getAmountsOut(outputBal, outputToNativeRoute)[outputToNativeRoute.length];
+            nativeOut = ISolidlyRouter(unirouter).getAmountsOut(outputBal, outputToNativeRoute)[
+                outputToNativeRoute.length
+            ];
         }
 
-        return nativeOut * fees.total / DIVISOR * fees.call / DIVISOR;
+        return (((nativeOut * fees.total) / DIVISOR) * fees.call) / DIVISOR;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
@@ -235,10 +273,6 @@ contract StrategyCommonVelodromeGaugeV2 is StratFeeManagerInitializable, GasFeeT
         } else {
             setWithdrawalFee(10);
         }
-    }
-
-    function setShouldGasThrottle(bool _shouldGasThrottle) external onlyManager {
-        shouldGasThrottle = _shouldGasThrottle;
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
