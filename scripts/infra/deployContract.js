@@ -1,12 +1,8 @@
-const { getContractAddress } = require("@openzeppelin/hardhat-upgrades/dist/utils");
 const hardhat = require("hardhat");
-const { startingEtherPerAccount } = require("../../utils/configInit");
 
 const ethers = hardhat.ethers;
 
-const contractName = "StrategyBalancerMultiReward";
-
-const config = {};
+const contractName = "StrategyAuraOVNArbitrum";
 
 async function main() {
   await hardhat.run("compile");
@@ -20,9 +16,7 @@ async function main() {
 
   await hardhat.run("verify:verify", {
     address: contract.address,
-    constructorArguments: [
-      ...params
-    ],
+    constructorArguments: [],
   })
 }
 

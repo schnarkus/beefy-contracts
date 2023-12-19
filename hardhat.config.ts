@@ -55,7 +55,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     fantom: {
-      url: process.env.FANTOM_RPC || "https://rpc.ankr.com/fantom",
+      url: process.env.FANTOM_RPC || "https://rpc3.fantom.network",
       chainId: 250,
       accounts,
     },
@@ -65,7 +65,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     arbitrum: {
-      url: process.env.ARBITRUM_RPC || "https://arbitrum-one.publicnode.com",
+      url: process.env.ARBITRUM_RPC || "https://arbitrum.llamarpc.com",
       chainId: 42161,
       accounts,
     },

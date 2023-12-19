@@ -205,11 +205,7 @@ contract StrategyBalancerMultiReward is StratFeeManagerInitializable {
                         int256(bal)
                     );
                 } else if (rewards[rewardTokens[i]].routerType == BeefyBalancerStructs.RouterType.UNISWAP_V3) {
-                    UniV3Actions.swapV3WithDeadline(
-                        rewards[rewardTokens[i]].router,
-                        rewards[rewardTokens[i]].routeToNative,
-                        bal
-                    );
+                    UniV3Actions.swapV3(rewards[rewardTokens[i]].router, rewards[rewardTokens[i]].routeToNative, bal);
                 } else if (rewards[rewardTokens[i]].routerType == BeefyBalancerStructs.RouterType.UNISWAP_V2) {
                     IUniswapRouterETH(rewards[rewardTokens[i]].router).swapExactTokensForTokens(
                         bal,

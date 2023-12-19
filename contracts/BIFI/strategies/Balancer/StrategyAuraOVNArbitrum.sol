@@ -5,6 +5,7 @@ import "@openzeppelin-4/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/common/IUniswapRouterETH.sol";
+import "../../interfaces/common/ISolidlyRouter.sol";
 import "../../interfaces/beethovenx/IBalancerVault.sol";
 import "../../interfaces/aura/IAuraRewardPool.sol";
 import "../../interfaces/curve/IStreamer.sol";
@@ -18,33 +19,46 @@ interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
 }
 
-contract StrategyAuraSideChain is StratFeeManagerInitializable {
+interface IWrapper {
+    function wrap(address asset, uint256 amount, address receiver) external returns (uint256);
+}
+
+contract StrategyAuraOVNArbitrum is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
     address public want;
     address public output;
     address public native;
+    address public usdc;
+    address public frax;
+    address public usdp;
 
     BeefyBalancerStructs.Input public input;
+    mapping(address => BeefyBalancerStructs.Reward) public rewards;
+    address[] public rewardTokens;
 
     // Third party contracts
     address public booster;
     address public rewardPool;
     uint256 public pid;
+    address public uniswapRouter;
+    address public sushiRouter;
+    address public ramsesRouter;
+    address public chronosRouter;
+    address public wrapper;
 
     IBalancerVault.SwapKind public swapKind;
     IBalancerVault.FundManagement public funds;
 
-    BeefyBalancerStructs.BatchSwapStruct[] public nativeToInputRoute;
+    // Routes
     BeefyBalancerStructs.BatchSwapStruct[] public outputToNativeRoute;
-    address[] public nativeToInputAssets;
     address[] public outputToNativeAssets;
+    address[] public nativeToInputAssets;
+    address[] public nativeToUSDCRoute;
+    ISolidlyRouter.Routes[] public usdcToFRAXRoute;
+    ISolidlyRouter.Routes[] public fraxToUSDPRoute;
 
-    mapping(address => BeefyBalancerStructs.Reward) public rewards;
-    address[] public rewardTokens;
-
-    address public uniswapRouter;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
 
@@ -55,24 +69,32 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
 
     function initialize(
         address _want,
-        bool _inputIsComposable,
-        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToInputRoute,
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
+        address[] memory _outputToNative,
+        address[] memory _nativeToInput,
+        address[] memory _nativeToUSDCRoute,
+        ISolidlyRouter.Routes[] memory _usdcToFRAXRoute,
+        ISolidlyRouter.Routes[] memory _fraxToUSDPRoute,
         address _booster,
         uint256 _pid,
-        address[] memory _nativeToInput,
-        address[] memory _outputToNative,
+        bool _inputIsComposable,
         CommonAddresses calldata _commonAddresses
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
 
-        for (uint i; i < _nativeToInputRoute.length; ++i) {
-            nativeToInputRoute.push(_nativeToInputRoute[i]);
+        for (uint i; i < _outputToNativeRoute.length; ++i) {
+            outputToNativeRoute.push(_outputToNativeRoute[i]);
         }
 
-        for (uint j; j < _outputToNativeRoute.length; ++j) {
-            outputToNativeRoute.push(_outputToNativeRoute[j]);
+        for (uint j; j < _usdcToFRAXRoute.length; ++j) {
+            usdcToFRAXRoute.push(_usdcToFRAXRoute[j]);
         }
+
+        for (uint k; k < _fraxToUSDPRoute.length; ++k) {
+            fraxToUSDPRoute.push(_fraxToUSDPRoute[k]);
+        }
+
+        nativeToUSDCRoute = _nativeToUSDCRoute;
 
         want = _want;
         booster = _booster;
@@ -83,7 +105,16 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         native = nativeToInputAssets[0];
         input.input = nativeToInputAssets[nativeToInputAssets.length - 1];
         input.isComposable = _inputIsComposable;
+
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+        sushiRouter = address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506);
+        ramsesRouter = address(0xAAA87963EFeB6f7E0a2711F397663105Acb1805e);
+        chronosRouter = address(0xE708aA9E887980750C040a6A2Cb901c37Aa34f3b);
+        wrapper = address(0x149Eb6E777aDa78D383bD93c57D45a9A71b171B1);
+
+        usdc = address(0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8);
+        frax = address(0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F);
+        usdp = address(0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65);
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
 
@@ -226,21 +257,47 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
     }
 
+    // wraps usd+ to wusd+
+    function wrapTokens() internal {
+        uint256 toWrap = IERC20(usdp).balanceOf(address(this));
+        require(toWrap > 0, "No tokens to wrap");
+
+        IWrapper(wrapper).wrap(usdp, toWrap, address(this));
+    }
+
     // Adds liquidity to AMM and gets more LP tokens.
     function addLiquidity() internal {
-        uint256 nativeBal = IERC20(native).balanceOf(address(this));
-        if (native != input.input) {
-            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
-                nativeToInputRoute,
-                nativeBal
-            );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToInputAssets, funds, int256(nativeBal));
-        }
+        uint256 toUSDC = IERC20(native).balanceOf(address(this));
+        IUniswapRouterETH(sushiRouter).swapExactTokensForTokens(
+            toUSDC,
+            0,
+            nativeToUSDCRoute,
+            address(this),
+            block.timestamp
+        );
 
-        if (input.input != want) {
-            uint256 inputBal = IERC20(input.input).balanceOf(address(this));
-            BalancerActionsLib.balancerJoin(unirouter, IBalancerPool(want).getPoolId(), input.input, inputBal);
-        }
+        uint256 toFRAX = IERC20(usdc).balanceOf(address(this));
+        ISolidlyRouter(ramsesRouter).swapExactTokensForTokens(
+            toFRAX,
+            0,
+            usdcToFRAXRoute,
+            address(this),
+            block.timestamp
+        );
+
+        uint256 toUSDP = IERC20(frax).balanceOf(address(this));
+        ISolidlyRouter(chronosRouter).swapExactTokensForTokens(
+            toUSDP,
+            0,
+            fraxToUSDPRoute,
+            address(this),
+            block.timestamp
+        );
+
+        wrapTokens();
+
+        uint256 inputBal = IERC20(input.input).balanceOf(address(this));
+        BalancerActionsLib.balancerJoin(unirouter, IBalancerPool(want).getPoolId(), input.input, inputBal);
     }
 
     // calculate the total underlaying 'want' held by the strat.
@@ -348,7 +405,10 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     function _giveAllowances() internal {
         IERC20(want).safeApprove(booster, type(uint).max);
         IERC20(output).safeApprove(unirouter, type(uint).max);
-        IERC20(native).safeApprove(unirouter, type(uint).max);
+        IERC20(native).safeApprove(sushiRouter, type(uint).max);
+        IERC20(usdc).safeApprove(ramsesRouter, type(uint).max);
+        IERC20(frax).safeApprove(chronosRouter, type(uint).max);
+        IERC20(usdp).safeApprove(wrapper, type(uint).max);
         if (!input.isComposable) {
             IERC20(input.input).safeApprove(unirouter, 0);
             IERC20(input.input).safeApprove(unirouter, type(uint).max);
@@ -369,7 +429,10 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     function _removeAllowances() internal {
         IERC20(want).safeApprove(booster, 0);
         IERC20(output).safeApprove(unirouter, 0);
-        IERC20(native).safeApprove(unirouter, 0);
+        IERC20(native).safeApprove(sushiRouter, 0);
+        IERC20(usdc).safeApprove(ramsesRouter, 0);
+        IERC20(frax).safeApprove(chronosRouter, 0);
+        IERC20(usdp).safeApprove(wrapper, 0);
         if (!input.isComposable) {
             IERC20(input.input).safeApprove(unirouter, 0);
         }
@@ -382,5 +445,24 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
                 }
             }
         }
+    }
+
+    function _solidlyToRoute(ISolidlyRouter.Routes[] memory _route) internal pure returns (address[] memory) {
+        address[] memory route = new address[](_route.length + 1);
+        route[0] = _route[0].from;
+        for (uint i; i < _route.length; ++i) {
+            route[i + 1] = _route[i].to;
+        }
+        return route;
+    }
+
+    function usdcToFRAX() external view returns (address[] memory) {
+        ISolidlyRouter.Routes[] memory _route = usdcToFRAXRoute;
+        return _solidlyToRoute(_route);
+    }
+
+    function fraxToUSDP() external view returns (address[] memory) {
+        ISolidlyRouter.Routes[] memory _route = fraxToUSDPRoute;
+        return _solidlyToRoute(_route);
     }
 }
