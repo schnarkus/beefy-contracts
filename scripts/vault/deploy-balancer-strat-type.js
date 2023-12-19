@@ -11,8 +11,6 @@ const {
     ARB: { address: ARB },
     ETH: { address: ETH },
     arbUSDCe: { address: arbUSDCe },
-    DOLA: { address: DOLA },
-    FRAX: { address: FRAX },
   },
 } = addressBook.arbitrum;
 
@@ -22,8 +20,8 @@ const wUSDP = web3.utils.toChecksumAddress("0xB86fb1047A955C0186c77ff6263819b37B
 const want = web3.utils.toChecksumAddress("0x85Ec6ae01624aE0d2a04D0Ffaad3A25884C7d0f3");
 
 const vaultParams = {
-  mooName: "Moo Aura Arb OVN-wUSD+",
-  mooSymbol: "mooAuraArbOVN-wUSD+",
+  mooName: "Moo Aura Test",
+  mooSymbol: "mooAuraTest",
   delay: 21600,
 };
 
@@ -35,15 +33,8 @@ const strategyParams = {
     ["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]
   ],
   outputToNative: [BAL, ETH],
-  nativeToInput: [ETH, arbUSDCe, DOLA, FRAX, USDP, wUSDP],
+  nativeToInput: [ETH, arbUSDCe, USDP, wUSDP],
   nativeToUSDCRoute: [ETH, arbUSDCe],
-  usdcToFRAXRoute: [
-    [arbUSDCe, DOLA, true],
-    [DOLA, FRAX, true],
-  ],
-  fraxToUSDPRoute: [
-    [FRAX, USDP, true],
-  ],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
   pid: 36,
   inputIsComposable: false,
@@ -53,7 +44,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x1c6a62b0d0f22fF857B1826758B6Dc7513B88DB0",
+  strategyImplementation: "0x6D4DEEC9046cf1C26619B549E5FCe633dAD5De0A",
   extraReward: true,
   secondExtraReward: true,
   rewardAssets: [AURA, BAL, ETH],
@@ -116,8 +107,6 @@ async function main() {
     strategyParams.outputToNative,
     strategyParams.nativeToInput,
     strategyParams.nativeToUSDCRoute,
-    strategyParams.usdcToFRAXRoute,
-    strategyParams.fraxToUSDPRoute,
     strategyParams.booster,
     strategyParams.pid,
     strategyParams.inputIsComposable,
