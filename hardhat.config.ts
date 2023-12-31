@@ -151,7 +151,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     base: {
-      url: process.env.BASE_RPC || "https://base.meowrpc.com",
+      url: process.env.BASE_RPC || "https://base.llamarpc.com",
       chainId: 8453,
       accounts,
     },

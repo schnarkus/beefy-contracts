@@ -2,7 +2,7 @@ const hardhat = require("hardhat");
 
 const ethers = hardhat.ethers;
 
-const contractName = "StrategyAuraOVNArbitrum";
+const contractName = "StrategyAuraSideChainOmnichainSwap";
 
 async function main() {
   await hardhat.run("compile");

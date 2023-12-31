@@ -101,7 +101,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         native = nativeToInputAssets[0];
         input.input = nativeToInputAssets[nativeToInputAssets.length - 1];
         input.isComposable = _inputIsComposable;
-        uniswapRouter = address(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
+        uniswapRouter = address(0x2626664c2603336E57B271c5C0b26F421741e481);
         swapper = _swapper;
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
