@@ -248,8 +248,10 @@ contract StrategyBalancerMultiRewardChefUniV2 is StratFeeManagerInitializable {
             BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToInputAssets, funds, int256(nativeBal));
         }
 
-        uint256 inputBal = IERC20(input.input).balanceOf(address(this));
-        BalancerActionsLib.balancerJoin(unirouter, IBalancerPool(want).getPoolId(), input.input, inputBal);
+        if (input.input != want) {
+            uint256 inputBal = IERC20(input.input).balanceOf(address(this));
+            BalancerActionsLib.balancerJoin(unirouter, IBalancerPool(want).getPoolId(), input.input, inputBal);
+        }
     }
 
     // calculate the total underlaying 'want' held by the strat.

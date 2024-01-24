@@ -2,43 +2,46 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyBalancerMultiRewardChefUniV2.sol/StrategyBalancerMultiRewardChefUniV2.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraSideChainOmnichainSwap.sol/StrategyAuraSideChainOmnichainSwap.json";
 
 const {
-  platforms: { beethovenx, beefyfinance },
+  platforms: { balancer, beefyfinance },
   tokens: {
-    FTM: { address: FTM },
-    BEETS: { address: BEETS },
-    lzUSDC: { address: lzUSDC },
+    ETH: { address: ETH },
+    USDC: { address: USDC },
   },
-} = addressBook.fantom;
+} = addressBook.base;
 
-const want = web3.utils.toChecksumAddress("0x46E578B73a95e62423CE26056aa750bB9D99be32");
+const BAL = web3.utils.toChecksumAddress("0x4158734D47Fc9692176B5085E0F52ee0Da5d47F1");
+const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
+const want = web3.utils.toChecksumAddress("0xFb4C2E6E6e27B5b4a07a36360C89EDE29bB3c9B6");
 
 const vaultParams = {
-  mooName: "Moo Beets Love Thy Stables",
-  mooSymbol: "mooBeetsLoveThyStables",
+  mooName: "Moo Dummy Aura cbETH",
+  mooSymbol: "mooDummyAuracbETH",
   delay: 21600,
-}
+};
+
+const bytes0 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const strategyParams = {
   want: want,
-  switches: [1, 0],
-  nativeToInputRoute: [["0x838229095fa83bcd993ef225d01a990e3bc197a800020000000000000000075b", 0, 1], ["0x46e578b73a95e62423ce26056aa750bb9d99be320000000000000000000007cf", 1, 2]],
-  outputToNativeRoute: [["0x9e4341acef4147196e99d648c5e43b3fc9d026780002000000000000000005ec", 0, 1]],
-  assets: [
-    [BEETS, FTM],
-    [FTM, lzUSDC, want],
-  ],
-  chef: beethovenx.masterchef,
-  poolId: 141,
-  unirouter: beethovenx.router,
+  aura: AURA,
+  inputIsComposable: true,
+  nativeToInputRoute: [["0xfb4c2e6e6e27b5b4a07a36360c89ede29bb3c9b6000000000000000000000026", 0, 1]],
+  outputToNativeRoute: [["0xb328b50f1f7d97ee8ea391ab5096dd7657555f49000100000000000000000048", 0, 1], ["0x433f09ca08623e48bac7128b7105de678e37d988000100000000000000000047", 1, 2]],
+  booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
+  swapper: "0x1b54742042Fb2e00aE58F54EcF09df87790F95Ef",
+  pid: 3,
+  nativeToInput: [ETH, want],
+  outputToNative: [BAL, USDC, ETH],
+  unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x48F758a1d39f6fFae3C94f14FCe8b7064a700b95",
+  strategyImplementation: "0x9B848e5F958c2c0f8D55592379F114E753c4A538",
 };
 
 async function main() {
@@ -88,12 +91,15 @@ async function main() {
 
   const strategyConstructorArguments = [
     want,
-    strategyParams.switches,
+    strategyParams.aura,
+    strategyParams.inputIsComposable,
     strategyParams.nativeToInputRoute,
     strategyParams.outputToNativeRoute,
-    strategyParams.assets,
-    strategyParams.chef,
-    strategyParams.poolId,
+    strategyParams.booster,
+    strategyParams.swapper,
+    strategyParams.pid,
+    strategyParams.nativeToInput,
+    strategyParams.outputToNative,
     [
       vault,
       strategyParams.unirouter,

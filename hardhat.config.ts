@@ -166,6 +166,7 @@ const config: DeploymentConfig = {
       optimisticEthereum: process.env.OPTIMISM_API_KEY!,
       arbitrumOne: process.env.ARBITRUM_API_KEY!,
       base: process.env.BASE_API_KEY!,
+      opera: process.env.OPERA_API_KEY!,
     },
     customChains: [
       {
