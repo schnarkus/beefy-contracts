@@ -11,18 +11,18 @@ const {
     ETH: { address: ETH },
     opUSDCe: { address: opUSDCe },
     USDC: { address: USDC },
-    sUSD: { address: sUSD },
+    LUSD: { address: LUSD },
   },
 } = addressBook.optimism;
 
 const zero = ethers.constants.AddressZero;
 
-const want = web3.utils.toChecksumAddress("0xbC26519f936A90E78fe2C9aA2A03CC208f041234");
-const gauge = web3.utils.toChecksumAddress("0x0E4c56B4a766968b12c286f67aE341b11eDD8b8d");
+const want = web3.utils.toChecksumAddress("0x4F3da11c5caDf644ae023Dbad01008a934C993E2");
+const gauge = web3.utils.toChecksumAddress("0x7916f9c19d16456DDe5e57f42757C7d85fCee656");
 
 const vaultParams = {
-  mooName: "Moo VeloV2 USDC-sUSD",
-  mooSymbol: "mooVeloV2USDC-sUSD",
+  mooName: "Moo VeloV2 USDC-LUSD",
+  mooSymbol: "mooVeloV2USDC-LUSD",
   delay: 21600,
 };
 
@@ -44,7 +44,7 @@ const strategyParams = {
   outputToLp1Route: [
     [VELOV2, opUSDCe, false, zero],
     [opUSDCe, USDC, true, zero],
-    [USDC, sUSD, true, zero],
+    [USDC, LUSD, true, zero],
   ],
   beefyVaultProxy: beefyfinance.vaultFactory,
   strategyImplementation: "0x83ff748c4dad196944ded62c998ddc87a57a4198",
