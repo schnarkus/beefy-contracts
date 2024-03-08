@@ -9,7 +9,6 @@ import "../../interfaces/beethovenx/IBalancerVault.sol";
 import "../../interfaces/aura/IAuraRewardPool.sol";
 import "../../interfaces/curve/IStreamer.sol";
 import "../../interfaces/aura/IAuraBooster.sol";
-import "../../interfaces/common/IWrappedNative.sol";
 import "../Common/StratFeeManagerInitializable.sol";
 import "./BalancerActionsLib.sol";
 import "./BeefyBalancerStructs.sol";
@@ -21,26 +20,18 @@ interface IBalancerPool {
     function getTokenRates() external view returns (uint256, uint256);
 }
 
-interface ISwapper {
-    function swapAura(uint256 _amount) external payable;
-
-    function estimate(uint256 _amount) external view returns (uint256 gasNeeded);
-}
-
-contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
+contract StrategyAuraGyroSideChain is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
     address public want;
     address public output;
-    address public aura;
     address public native;
 
     // Third party contracts
     address public booster;
     address public rewardPool;
     address public uniswapRouter;
-    address public swapper;
     uint256 public pid;
 
     // Balancer Router set up
@@ -61,9 +52,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
     // Some needed state variables
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
-    uint256 public totalLocked;
-    uint256 public minSwap;
-    uint256 public constant DURATION = 1 days;
 
     event StratHarvest(address indexed harvester, uint256 indexed wantHarvested, uint256 indexed tvl);
     event Deposit(uint256 indexed tvl);
@@ -72,12 +60,10 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
 
     function initialize(
         address _want,
-        address _aura,
         bool _inputIsComposable,
         BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToInputRoute,
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
         address _booster,
-        address _swapper,
         uint256 _pid,
         address[] memory _nativeToInput,
         address[] memory _outputToNative,
@@ -94,7 +80,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         }
 
         want = _want;
-        aura = _aura;
         booster = _booster;
         pid = _pid;
         outputToNativeAssets = _outputToNative;
@@ -104,11 +89,8 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         input.input = nativeToInputAssets[nativeToInputAssets.length - 1];
         input.isComposable = _inputIsComposable;
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-        swapper = _swapper;
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
-
-        minSwap = 10 ether;
 
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
@@ -176,7 +158,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
             chargeFees(callFeeRecipient);
             addLiquidity();
             uint256 wantHarvested = balanceOfWant() - before;
-            totalLocked = wantHarvested + lockedProfit();
             deposit();
 
             lastHarvest = block.timestamp;
@@ -229,19 +210,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
                 }
             }
         }
-
-        uint256 auraBal = IERC20(aura).balanceOf(address(this));
-        uint256 nativeBal = IERC20(native).balanceOf(address(this));
-        uint256 balanceThis = address(this).balance;
-        uint256 gasNeeded = ISwapper(swapper).estimate(auraBal);
-
-        if (auraBal > minSwap) {
-            if ((nativeBal + balanceThis) >= gasNeeded) {
-                uint256 nativeToWithdraw = gasNeeded <= balanceThis ? 0 : gasNeeded - balanceThis;
-                if (nativeToWithdraw > 0) IWrappedNative(native).withdraw(nativeToWithdraw);
-                ISwapper(swapper).swapAura{value: gasNeeded}(auraBal);
-            }
-        }
     }
 
     // performance fees
@@ -261,7 +229,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
     }
 
-    // Adds liquidity to AMM and gets more LP tokens.
+    // adds liquidity to AMM and gets more LP tokens
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
         if (nativeBal > 0) {
@@ -303,23 +271,17 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         lp1Amt = nativeBal - lp0Amt;
     }
 
-    function lockedProfit() public view returns (uint256) {
-        uint256 elapsed = block.timestamp - lastHarvest;
-        uint256 remaining = elapsed < DURATION ? DURATION - elapsed : 0;
-        return (totalLocked * remaining) / DURATION;
-    }
-
-    // calculate the total underlaying 'want' held by the strat.
+    // calculate the total underlaying 'want' held by the strat
     function balanceOf() public view returns (uint256) {
-        return balanceOfWant() + balanceOfPool() - lockedProfit();
+        return balanceOfWant() + balanceOfPool();
     }
 
-    // it calculates how much 'want' this contract holds.
+    // calculates how much 'want' this contract holds
     function balanceOfWant() public view returns (uint256) {
         return IERC20(want).balanceOf(address(this));
     }
 
-    // it calculates how much 'want' the strategy has working in the farm.
+    // calculates how much 'want' the strategy has working in the farm
     function balanceOfPool() public view returns (uint256) {
         return IAuraRewardPool(rewardPool).balanceOf(address(this));
     }
@@ -331,7 +293,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
 
     // native reward amount for calling harvest
     function callReward() public pure returns (uint256) {
-        return 0; // multiple swap providers with no easy way to estimate native output.
+        return 0; // multiple swap providers with no easy way to estimate native output
     }
 
     function addRewardToken(
@@ -371,10 +333,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         delete rewardTokens;
     }
 
-    function setMinSwap(uint256 _min) external onlyManager {
-        minSwap = _min;
-    }
-
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
         harvestOnDeposit = _harvestOnDeposit;
 
@@ -385,7 +343,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         }
     }
 
-    // called as part of strat migration. Sends all the available funds back to the vault.
+    // called as part of strat migration. Sends all the available funds back to the vault
     function retireStrat() external {
         require(msg.sender == vault, "!vault");
 
@@ -395,7 +353,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         IERC20(want).transfer(vault, wantBal);
     }
 
-    // pauses deposits and withdraws all funds from third party systems.
+    // pauses deposits and withdraws all funds from third party systems
     function panic() public onlyManager {
         pause();
         IAuraRewardPool(rewardPool).withdrawAndUnwrap(balanceOfPool(), false);
@@ -419,7 +377,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         IERC20(want).safeApprove(booster, type(uint).max);
         IERC20(output).safeApprove(unirouter, type(uint).max);
         IERC20(native).safeApprove(unirouter, type(uint).max);
-        IERC20(aura).safeApprove(swapper, type(uint).max);
         if (!input.isComposable) {
             IERC20(input.input).safeApprove(unirouter, 0);
             IERC20(input.input).safeApprove(unirouter, type(uint).max);
@@ -441,7 +398,6 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         IERC20(want).safeApprove(booster, 0);
         IERC20(output).safeApprove(unirouter, 0);
         IERC20(native).safeApprove(unirouter, 0);
-        IERC20(aura).safeApprove(swapper, 0);
         if (!input.isComposable) {
             IERC20(input.input).safeApprove(unirouter, 0);
         }

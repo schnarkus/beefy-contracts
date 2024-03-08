@@ -46,7 +46,7 @@
     "deploy:chain": "hardhat run scripts/infra/deployChain.js --network",
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
-    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network fantom",
+    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network arbitrum",
     "deploy": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network optimism",
     "rewards": "hardhat run scripts/vault/add-rewards.js --network arbitrum",
     "swapper": "hardhat run scripts/infra/deployLZ.js --network base",
