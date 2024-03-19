@@ -47,7 +47,7 @@
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
     "deploy:contract": "hardhat run scripts/infra/deployContract.js --network arbitrum",
-    "deploy": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network optimism",
+    "deploy": "hardhat run scripts/vault/deploy-balancer-strat-type.js --network arbitrum",
     "rewards": "hardhat run scripts/vault/add-rewards.js --network arbitrum",
     "swapper": "hardhat run scripts/infra/deployLZ.js --network base",
     "approve": "hardhat run scripts/manage/approve.js --network arbitrum",

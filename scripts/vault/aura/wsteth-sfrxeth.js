@@ -15,11 +15,11 @@ const {
 } = addressBook.arbitrum;
 
 const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
-const want = web3.utils.toChecksumAddress("0x2d6CeD12420a9AF5a83765a8c48Be2aFcD1A8FEb");
+const want = web3.utils.toChecksumAddress("0xc2598280bFeA1Fe18dFcaBD21C7165c40c6859d3");
 
 const vaultParams = {
-  mooName: "Moo Aura Arb cbETH/wstETH/rETHV2",
-  mooSymbol: "mooAuraArbcbETH/wstETH/rETHV2",
+  mooName: "Moo Aura Arb wstETH-sfrxETH",
+  mooSymbol: "mooAuraArbwstETH-sfrxETH",
   delay: 21600,
 };
 
@@ -28,10 +28,10 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 const strategyParams = {
   want: want,
   inputIsComposable: true,
-  nativeToInputRoute: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1], ["0x2d6ced12420a9af5a83765a8c48be2afcd1a8feb000000000000000000000500", 1, 2]],
+  nativeToInputRoute: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1], ["0xc2598280bfea1fe18dfcabd21c7165c40c6859d30000000000000000000004f3", 1, 2]],
   outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  pid: 50,
+  pid: 51,
   nativeToInput: [ETH, wstETH, want],
   outputToNative: [BAL, ETH],
   unirouter: balancer.router,
