@@ -39,7 +39,7 @@
     "deploy:curve": "hardhat run scripts/vault/deploy-curve-strat.ts --network",
     "deploy:rewardPool": "hardhat run scripts/vault/deploy-generic-rewardPool-strat.ts --network",
     "deploy:gauge": "hardhat run scripts/vault/deploy-solidly-gauge.js --network",
-    "deploy:gauge:proxy": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network",
+    "deploy": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network base",
     "deploy:gamma": "hardhat run scripts/vault/deploy-gamma-strat.js --network",
     "deploy:lend": "hardhat run scripts/vault/deploy-strat-lend.ts --network",
     "deploy:kyber": "hardhat run scripts/vault/deploy-kyber-strat.ts --network",

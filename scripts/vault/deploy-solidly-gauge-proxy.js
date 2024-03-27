@@ -2,61 +2,57 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Common/StrategyCommonSolidlyRewardPool.sol/StrategyCommonSolidlyRewardPoolLP.json";
-import stratStakerAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraBalancerComposableMultiRewardGaugeUniV3.sol/StrategyAuraBalancerComposableMultiRewardGaugeUniV3.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Velodrome/StrategyVelodromeGaugeV2.sol/StrategyVelodromeGaugeV2.json";
 
 const {
-  platforms: { thena, beefyfinance },
+  platforms: { aerodrome, beefyfinance },
   tokens: {
-    THE: {address: THE},
+    AERO: { address: AERO },
+    ETH: { address: ETH },
     USDC: { address: USDC },
-    BUSD: {address: BUSD},
-    BNB: {address: BNB}, 
-    ETH: {address: ETH},
-    MAI: {address: MAI},
-    USDT: {address: USDT},
-    BTCB: {address: BTCB},
-    BNBx: {address: BNBx},
-    FRAX: { address: FRAX}
+    DOLA: { address: DOLA },
   },
-} = addressBook.bsc;
+} = addressBook.base;
 
+const zero = ethers.constants.AddressZero;
 
-const want = web3.utils.toChecksumAddress("0x6c83E45fE3Be4A9c12BB28cB5BA4cD210455fb55");
-const gauge = web3.utils.toChecksumAddress("0x0Df5Dfe92A0568373DA2d705Cdb5F68017c4B19A");
-const binSpiritGauge = web3.utils.toChecksumAddress("0x44e314190D9E4cE6d4C0903459204F8E21ff940A");
-//const ensId = ethers.utils.formatBytes32String("cake.eth");
+const want = web3.utils.toChecksumAddress("0x8E9154AC849e839d60299E85156bcb589De2693A");
+const gauge = web3.utils.toChecksumAddress("0x969c70383A95704C6a35497d8C77BF38dc152e63");
+
+const USDPlus = web3.utils.toChecksumAddress("0xB79DD08EA68A908A97220C76d19A6aA9cBDE4376");
 
 const vaultParams = {
-  mooName: "Moo Thena BNBx-BNB",
-  mooSymbol: "mooThenaBNBx-BNB",
+  mooName: "Moo Aero Dummy DOLA-​USD+",
+  mooSymbol: "mooAeroDummyDOLA-​USD+",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   gauge: gauge,
-  unirouter: thena.router,
-  gaugeStaker: binSpiritGauge,
-  strategist: process.env.STRATEGIST_ADDRESS, // some address
+  unirouter: aerodrome.router,
+  strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
-  outputToNativeRoute: [[THE, BNB, false]],
-  outputToLp0Route: [[THE, BNB, false],[BNB, BNBx, false]],
-  outputToLp1Route: [[THE, BNB, false]],
-  verifyStrat: false,
-  spiritswapStrat: false,
-  gaugeStakerStrat: false,
-  beefyVaultProxy: "0xe596eC590DE52C09c8D1C7A1294B32F957A7c94e",  //beefyfinance.vaultProxy,
-  strategyImplementation: "0xd1B5A6078B04b4BED9bF656b055c3721833972ba",
-  strategyImplementationStaker: "0xC3d5c128a3e5b F60C6Fb87A4B644B6a2D8093f55",
-  useVaultProxy: true,
- // ensId
+  outputToNativeRoute: [
+    [AERO, ETH, false, zero],
+  ],
+  outputToLp0Route: [
+    [AERO, USDC, false, zero],
+    [USDC, DOLA, true, zero],
+  ],
+  outputToLp1Route: [
+    [AERO, USDC, false, zero],
+    [USDC, DOLA, true, zero],
+    [DOLA, USDPlus, true, zero],
+  ],
+  beefyVaultProxy: beefyfinance.vaultFactory,
+  strategyImplementation: "0x13aD51a6664973EbD0749a7c84939d973F247921",
 };
 
 async function main() {
- if (
+  if (
     Object.values(vaultParams).some(v => v === undefined) ||
     Object.values(strategyParams).some(v => v === undefined)
   ) {
@@ -73,53 +69,30 @@ async function main() {
   let tx = await factory.cloneVault();
   tx = await tx.wait();
   tx.status === 1
-  ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
-  : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
+    ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
+    : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
 
   let strat = await factory.callStatic.cloneContract(strategyParams.strategyImplementation);
-  let stratTx = await factory.cloneContract(strategyParams.gaugeStakerStrat ? strategyParams.strategyImplementationStaker : strategyParams.strategyImplementation);
+  let stratTx = await factory.cloneContract(strategyParams.strategyImplementation);
   stratTx = await stratTx.wait();
   stratTx.status === 1
-  ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
-  : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
+    ? console.log(`Strat ${strat} is deployed with tx: ${stratTx.transactionHash}`)
+    : console.log(`Strat ${strat} deploy failed with tx: ${stratTx.transactionHash}`);
 
-  const vaultConstructorArguments = [
-    strat,
-    vaultParams.mooName,
-    vaultParams.mooSymbol,
-    vaultParams.delay,
-  ];
-
+  const vaultConstructorArguments = [strat, vaultParams.mooName, vaultParams.mooSymbol, vaultParams.delay];
 
   const vaultContract = await ethers.getContractAt(vaultV7.abi, vault);
   let vaultInitTx = await vaultContract.initialize(...vaultConstructorArguments);
-  vaultInitTx = await vaultInitTx.wait()
+  vaultInitTx = await vaultInitTx.wait();
   vaultInitTx.status === 1
-  ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
+    ? console.log(`Vault Intilization done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   vaultInitTx = await vaultContract.transferOwnership(beefyfinance.vaultOwner);
-  vaultInitTx = await vaultInitTx.wait()
+  vaultInitTx = await vaultInitTx.wait();
   vaultInitTx.status === 1
-  ? console.log(`Vault OwnershipTransfered done with tx: ${vaultInitTx.transactionHash}`)
-  : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
-
-  const strategyConstructorArgumentsStaker = [
-    strategyParams.want,
-    strategyParams.gauge,
-    strategyParams.gaugeStaker,
-    [
-      vault,
-      strategyParams.unirouter,
-      strategyParams.keeper,
-      strategyParams.strategist,
-      strategyParams.beefyFeeRecipient,
-      strategyParams.feeConfig,
-    ],
-    strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
-    strategyParams.outputToLp1Route
-  ];
+    ? console.log(`Vault OwnershipTransferred done with tx: ${vaultInitTx.transactionHash}`)
+    : console.log(`Vault Intilization failed with tx: ${vaultInitTx.transactionHash}`);
 
   const strategyConstructorArguments = [
     strategyParams.want,
@@ -133,18 +106,18 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route, 
-    strategyParams.outputToLp1Route
+    strategyParams.outputToLp0Route,
+    strategyParams.outputToLp1Route,
   ];
 
-  let abi = strategyParams.gaugeStakerStrat  ? stratStakerAbi.abi : stratAbi.abi;
+  let abi = stratAbi.abi;
   const stratContract = await ethers.getContractAt(abi, strat);
-  let args = strategyParams.gaugeStakerStrat  ? strategyConstructorArgumentsStaker : strategyConstructorArguments
+  let args = strategyConstructorArguments;
   let stratInitTx = await stratContract.initialize(...args);
-  stratInitTx = await stratInitTx.wait()
+  stratInitTx = await stratInitTx.wait();
   stratInitTx.status === 1
-  ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
-  : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
+    ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
+    : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
 }
 
 main()

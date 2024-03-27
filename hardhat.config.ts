@@ -151,10 +151,10 @@ const config: DeploymentConfig = {
       accounts,
     },
     base: {
-      url: process.env.BASE_RPC || "https://mainnet.base.org",
+      url: process.env.BASE_RPC || "https://base.meowrpc.com",
       chainId: 8453,
       accounts,
-      gasPrice: 100000,
+      gasPrice: 3300000000,
     },
   },
   etherscan: {
@@ -213,7 +213,7 @@ const config: DeploymentConfig = {
             runs: 200,
           },
         },
-      }
+      },
     ],
   },
   paths: {
