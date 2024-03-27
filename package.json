@@ -31,6 +31,7 @@
     "test:upgrade": "hardhat test --network localhost test/prod/StratTimelockUpgrade.test.js",
     "test:registry": "hardhat test --network localhost test/infra/BeefyVaultRegistry.test.ts",
     "test:harvester": "hardhat test --network localhost test/infra/BeefyAutoHarvester.test.ts",
+    "deploy:cake": "hardhat run scripts/vault/deploy-ichi-strat.js --network bsc",
     "deploy:chef": "hardhat run scripts/vault/deploy-generic-chef-strat.ts --network",
     "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.ts --network",
     "deploy:aura": "hardhat run scripts/vault/deploy-balancer-strat-eth.ts --network",
