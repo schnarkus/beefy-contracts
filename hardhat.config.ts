@@ -35,7 +35,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     bsc: {
-      url: process.env.BSC_RPC || "https://rpc.ankr.com/bsc",
+      url: process.env.BSC_RPC || "https://bsc.meowrpc.com",
       chainId: 56,
       accounts,
     },
