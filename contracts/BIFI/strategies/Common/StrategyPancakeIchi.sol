@@ -11,16 +11,14 @@ import "../../utils/GasFeeThrottler.sol";
 import "../../utils/UniV3Actions.sol";
 import "../../utils/UniswapV3Utils.sol";
 
-interface IWrapper {
-    function deposit(uint256) external;
+interface IALMWrapper {
+    function deposit(uint256 amount, bool noHarvest) external;
 
-    function mintThenDeposit(uint256 deposit0, uint256 deposit1, bytes calldata data) external returns (uint256);
-
-    function withdraw(uint256 amount) external;
+    function withdraw(uint256 amount, bool noHarvest) external;
 
     function emergencyWithdraw() external;
 
-    function userInfo(address user) external view returns (uint256, uint256);
+    function userInfo(address user) external view returns (uint256, uint256, uint256, uint256, uint256);
 
     function pendingReward(address user) external view returns (uint256);
 }
@@ -52,7 +50,6 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
     // Third party contracts
     address public wrapper;
 
-    bool public isFastQuote;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
 
@@ -95,7 +92,7 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal > 0) {
-            IWrapper(wrapper).deposit(wantBal);
+            IALMWrapper(wrapper).deposit(wantBal, true);
             emit Deposit(balanceOf());
         }
     }
@@ -106,7 +103,7 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal < _amount) {
-            IWrapper(wrapper).withdraw(_amount - wantBal);
+            IALMWrapper(wrapper).withdraw(_amount - wantBal, true);
             wantBal = IERC20(want).balanceOf(address(this));
         }
 
@@ -141,7 +138,7 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
 
     // compounds earnings and charges performance fee
     function _harvest(address callFeeRecipient) internal whenNotPaused {
-        IWrapper(wrapper).deposit(0);
+        IALMWrapper(wrapper).deposit(0, true);
         uint256 outputBal = IERC20(output).balanceOf(address(this));
         if (outputBal > 0) {
             swapRewardsToNative();
@@ -209,13 +206,13 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256) {
-        (uint256 balance, ) = IWrapper(wrapper).userInfo(address(this));
+        (uint256 balance, , , , ) = IALMWrapper(wrapper).userInfo(address(this));
         return balance;
     }
 
     // returns rewards unharvested
     function rewardsAvailable() public view returns (uint256) {
-        return IWrapper(wrapper).pendingReward(address(this));
+        return IALMWrapper(wrapper).pendingReward(address(this));
     }
 
     // native reward amount for calling harvest
@@ -242,7 +239,7 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
         require(msg.sender == vault, "!vault");
 
         if (balanceOfPool() > 0) {
-            IWrapper(wrapper).emergencyWithdraw();
+            IALMWrapper(wrapper).emergencyWithdraw();
         }
 
         uint256 wantBal = IERC20(want).balanceOf(address(this));
@@ -252,7 +249,7 @@ contract StrategyPancakeIchi is StratFeeManagerInitializable, GasFeeThrottler {
     // pauses deposits and withdraws all funds from third party systems.
     function panic() public onlyManager {
         pause();
-        IWrapper(wrapper).emergencyWithdraw();
+        IALMWrapper(wrapper).emergencyWithdraw();
     }
 
     function pause() public onlyManager {
