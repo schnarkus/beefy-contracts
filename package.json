@@ -49,7 +49,7 @@
     "deploy:chain": "hardhat run scripts/infra/deployChain.js --network",
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
-    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network bsc",
+    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network optimism",
     "zap": "hardhat run ./scripts/infra/zapViaAggregator.js --network",
     "flat-hardhat": "hardhat flatten contracts/BIFI/infra/BeefyFeeConfigurator.sol > tmp/flattened.sol",
     "flat": "bin/flatten.sh",
@@ -64,7 +64,7 @@
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
     "fork:bsc": "hardhat node --fork bsc",
     "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
-    "verify": "hardhat run scripts/vault/verify.js --network bsc"
+    "verify": "hardhat run scripts/vault/verify.js --network optimism"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",

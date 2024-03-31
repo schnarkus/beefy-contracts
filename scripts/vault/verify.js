@@ -4,7 +4,7 @@ async function main() {
   await hardhat.run("compile");
 
   const config = {
-    targetAddress: "0x095aF7bc6281eCddD13ad449765DE2c942A92a64" // Target address for verification
+    targetAddress: "0x51C7Ad5E551AF9F86e321a213c324e7F33192859" // Target address for verification
   };
 
   await hardhat.run("verify:verify", {
