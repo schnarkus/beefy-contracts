@@ -9,26 +9,25 @@ const {
   tokens: {
     BNB: { address: BNB },
     CAKE: { address: CAKE },
+    rBNB: { address: rBNB },
   },
 } = addressBook.bsc;
 
-const bytes0 = '0x0000000000000000000000000000000000000000000000000000000000000000';
-
-const want = web3.utils.toChecksumAddress("0xA9bC9d27B040944388F1D43D7Ed65584aa692b17");
-const wrapper = web3.utils.toChecksumAddress("0x48a6939baf67BB17A3Fccb3Ec16098E887e4abd2");
+const want = web3.utils.toChecksumAddress("0xB22e845415C0B28854DC59D8FF14d12Cb757108B");
+const wrapper = web3.utils.toChecksumAddress("0xFEa119d2B35936001F1560b864941F651D479eD6");
 
 const vaultParams = {
-  mooName: "Moo Pancake Ichi rBNB-WBNB", //not the actual lp0-lp1 order, just whats the 90-10 ratio
-  mooSymbol: "mooPancakeIchirBNB-WBNB",
+  mooName: "Moo Pancake Ichi WBNB-rBNB",
+  mooSymbol: "mooPancakeIchiWBNB-rBNB",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   wrapper: wrapper,
-  depositToken0: true, //because token0 is wbnb
+  depositToken0: false, //because token0 is wbnb
   outputToNativePath: ethers.utils.solidityPack(["address", "uint24", "address"], [CAKE, 500, BNB]),
-  nativeToDepositPath: bytes0,
+  nativeToDepositPath: ethers.utils.solidityPack(["address", "uint24", "address"], [BNB, 100, rBNB]),
   unirouter: "0x1b81D678ffb9C0263b24A97847620C99d213eB14",
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,

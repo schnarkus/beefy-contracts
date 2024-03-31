@@ -15,6 +15,7 @@ import "../../utils/UniV3Actions.sol";
 
 interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
+
     function getTokenRates() external view returns (uint256, uint256);
 }
 
@@ -52,8 +53,6 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
     address[] public rewardTokens;
 
     address public uniswapRouter;
-    bool public earmark;
-    bool public shouldSweep;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
     uint256 public totalLocked;
@@ -74,7 +73,7 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
         address[] memory _lp0ToLp1,
         address[] memory _outputToNative,
         CommonAddresses calldata _commonAddresses
-    ) public initializer  {
+    ) public initializer {
         __StratFeeManager_init(_commonAddresses);
 
         for (uint i; i < _nativeToLp0Route.length; ++i) {
@@ -100,9 +99,8 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
         lp0 = lp0Tolp1Assets[0];
         lp1 = lp0Tolp1Assets[lp0Tolp1Assets.length - 1];
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-        shouldSweep = true;
 
-        (,,,rewardPool,,) = IAuraBooster(booster).poolInfo(pid);
+        (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
 
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
@@ -111,9 +109,7 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
     }
 
     function deposit() public whenNotPaused {
-        if (shouldSweep) {
-            _deposit();
-        }
+        _deposit();
     }
 
     // puts the funds to work
@@ -141,7 +137,7 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
         }
 
         if (tx.origin != owner() && !paused()) {
-            uint256 withdrawalFeeAmount = wantBal * withdrawalFee / WITHDRAWAL_MAX;
+            uint256 withdrawalFeeAmount = (wantBal * withdrawalFee) / WITHDRAWAL_MAX;
             wantBal = wantBal - withdrawalFeeAmount;
         }
 
@@ -171,7 +167,6 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
 
     // compounds earnings and charges performance fee
     function _harvest(address callFeeRecipient) internal whenNotPaused {
-        if (earmark) IAuraBooster(booster).earmarkRewards(pid);
         IAuraRewardPool(rewardPool).getReward();
         swapRewardsToNative();
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
@@ -192,23 +187,45 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
     function swapRewardsToNative() internal {
         uint256 outputBal = IERC20(output).balanceOf(address(this));
         if (outputBal > 0) {
-            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(outputToNativeRoute, outputBal);
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, outputToNativeAssets, funds, int256(outputBal));
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                outputToNativeRoute,
+                outputBal
+            );
+            BalancerActionsLib.balancerSwap(
+                unirouter,
+                swapKind,
+                _swaps,
+                outputToNativeAssets,
+                funds,
+                int256(outputBal)
+            );
         }
         // extras
         for (uint i; i < rewardTokens.length; ++i) {
             uint bal = IERC20(rewardTokens[i]).balanceOf(address(this));
             if (bal >= rewards[rewardTokens[i]].minAmount) {
                 if (rewards[rewardTokens[i]].assets[0] != address(0)) {
-                    BeefyBalancerStructs.BatchSwapStruct[] memory swapInfo = new BeefyBalancerStructs.BatchSwapStruct[](rewards[rewardTokens[i]].assets.length - 1);
-                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1;) {
+                    BeefyBalancerStructs.BatchSwapStruct[] memory swapInfo = new BeefyBalancerStructs.BatchSwapStruct[](
+                        rewards[rewardTokens[i]].assets.length - 1
+                    );
+                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1; ) {
                         swapInfo[j] = rewards[rewardTokens[i]].swapInfo[j];
                         unchecked {
                             ++j;
                         }
                     }
-                    IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(swapInfo, bal);
-                    BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, rewards[rewardTokens[i]].assets, funds, int256(bal));
+                    IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                        swapInfo,
+                        bal
+                    );
+                    BalancerActionsLib.balancerSwap(
+                        unirouter,
+                        swapKind,
+                        _swaps,
+                        rewards[rewardTokens[i]].assets,
+                        funds,
+                        int256(bal)
+                    );
                 } else {
                     UniV3Actions.swapV3WithDeadline(uniswapRouter, rewards[rewardTokens[i]].routeToNative, bal);
                 }
@@ -219,15 +236,15 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
         IFeeConfig.FeeCategory memory fees = getFees();
-        uint256 nativeBal = IERC20(native).balanceOf(address(this)) * fees.total / DIVISOR;
+        uint256 nativeBal = (IERC20(native).balanceOf(address(this)) * fees.total) / DIVISOR;
 
-        uint256 callFeeAmount = nativeBal * fees.call / DIVISOR;
+        uint256 callFeeAmount = (nativeBal * fees.call) / DIVISOR;
         IERC20(native).safeTransfer(callFeeRecipient, callFeeAmount);
 
-        uint256 beefyFeeAmount = nativeBal * fees.beefy / DIVISOR;
+        uint256 beefyFeeAmount = (nativeBal * fees.beefy) / DIVISOR;
         IERC20(native).safeTransfer(beefyFeeRecipient, beefyFeeAmount);
 
-        uint256 strategistFeeAmount = nativeBal * fees.strategist / DIVISOR;
+        uint256 strategistFeeAmount = (nativeBal * fees.strategist) / DIVISOR;
         IERC20(native).safeTransfer(strategist, strategistFeeAmount);
 
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
@@ -237,45 +254,59 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
         bytes32 poolId = IBalancerPool(want).getPoolId();
-        (address[] memory lpTokens,,) = IBalancerVault(unirouter).getPoolTokens(poolId);
+        (address[] memory lpTokens, , ) = IBalancerVault(unirouter).getPoolTokens(poolId);
 
         if (lpTokens[0] != native) {
-            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(nativeToLp0Route, nativeBal);
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                nativeToLp0Route,
+                nativeBal
+            );
             BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToLp0Assets, funds, int256(nativeBal));
         }
 
         if (nativeBal > 0) {
             uint256 lp0Bal = IERC20(lpTokens[0]).balanceOf(address(this));
-            (uint256 lp0Amt, uint256 lp1Amt) =  _calcSwapAmount(lp0Bal);
+            (uint256 lp0Amt, uint256 lp1Amt) = _calcSwapAmount(lp0Bal);
 
-            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(lp0ToLp1Route, lp1Amt);
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                lp0ToLp1Route,
+                lp1Amt
+            );
             BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0Tolp1Assets, funds, int256(lp1Amt));
-            
-            BalancerActionsLib.multiJoin(unirouter, want, poolId, lpTokens[0], lpTokens[1], lp0Amt, IERC20(lpTokens[1]).balanceOf(address(this)));
+
+            BalancerActionsLib.multiJoin(
+                unirouter,
+                want,
+                poolId,
+                lpTokens[0],
+                lpTokens[1],
+                lp0Amt,
+                IERC20(lpTokens[1]).balanceOf(address(this))
+            );
         }
     }
 
     function _calcSwapAmount(uint256 _bal) private view returns (uint256 lp0Amt, uint256 lp1Amt) {
-            lp0Amt = _bal / 2;
-            lp1Amt = _bal - lp0Amt;
+        lp0Amt = _bal / 2;
+        lp1Amt = _bal - lp0Amt;
 
-            (uint256 rate0, uint256 rate1) = IBalancerPool(want).getTokenRates();
+        (uint256 rate0, uint256 rate1) = IBalancerPool(want).getTokenRates();
 
-            (, uint256[] memory balances,) = IBalancerVault(unirouter).getPoolTokens(IBalancerPool(want).getPoolId());
-            uint256 supply = IERC20(want).totalSupply();
+        (, uint256[] memory balances, ) = IBalancerVault(unirouter).getPoolTokens(IBalancerPool(want).getPoolId());
+        uint256 supply = IERC20(want).totalSupply();
 
-            uint256 amountA = balances[0] * 1e18 / supply;
-            uint256 amountB = balances[1] * 1e18 / supply;
-            
-            uint256 ratio = rate0 * 1e18 / rate1 * amountB / amountA;
-            lp0Amt = _bal * 1e18 / (ratio + 1e18);
-            lp1Amt = _bal - lp0Amt;
+        uint256 amountA = (balances[0] * 1e18) / supply;
+        uint256 amountB = (balances[1] * 1e18) / supply;
+
+        uint256 ratio = ((rate0 * 1e18) / (rate1 * amountB)) / amountA;
+        lp0Amt = (_bal * 1e18) / (ratio + 1e18);
+        lp1Amt = _bal - lp0Amt;
     }
 
     function lockedProfit() public view returns (uint256) {
         uint256 elapsed = block.timestamp - lastHarvest;
         uint256 remaining = elapsed < DURATION ? DURATION - elapsed : 0;
-        return totalLocked * remaining / DURATION;
+        return (totalLocked * remaining) / DURATION;
     }
 
     // calculate the total underlaying 'want' held by the strat.
@@ -303,7 +334,13 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
         return 0; // multiple swap providers with no easy way to estimate native output.
     }
 
-    function addRewardToken(address _token, BeefyBalancerStructs.BatchSwapStruct[] memory _swapInfo, address[] memory _assets, bytes calldata _routeToNative, uint _minAmount) external onlyOwner {
+    function addRewardToken(
+        address _token,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _swapInfo,
+        address[] memory _assets,
+        bytes calldata _routeToNative,
+        uint _minAmount
+    ) external onlyOwner {
         require(_token != want, "!want");
         require(_token != native, "!native");
         if (_assets[0] != address(0)) {
@@ -341,14 +378,6 @@ contract StrategyAuraGyroMainnet is StratFeeManagerInitializable {
         } else {
             setWithdrawalFee(10);
         }
-    }
-
-    function setEarmark(bool _earmark) external onlyManager {
-        earmark = _earmark;
-    }
-
-    function setShouldSweep(bool _shouldSweep) external onlyManager {
-        shouldSweep = _shouldSweep;
     }
 
     // called as part of strat migration. Sends all the available funds back to the vault.
