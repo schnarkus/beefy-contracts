@@ -154,7 +154,6 @@ const config: DeploymentConfig = {
       url: process.env.BASE_RPC || "https://base.meowrpc.com",
       chainId: 8453,
       accounts,
-      gasPrice: 3300000000,
     },
   },
   etherscan: {
