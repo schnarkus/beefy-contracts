@@ -280,22 +280,22 @@ contract StrategyAuraGyroSidechainOmnichainSwap is StratFeeManagerInitializable 
         (address[] memory lpTokens, , ) = IBalancerVault(unirouter).getPoolTokens(poolId);
 
         if (lpTokens[0] != native) {
-            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+            IBalancerVault.BatchSwapStep[] memory _swap1 = BalancerActionsLib.buildSwapStructArray(
                 nativeToLp0Route,
                 nativeBal
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToLp0Assets, funds, int256(nativeBal));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swap1, nativeToLp0Assets, funds, int256(nativeBal));
         }
 
-        if (nativeBal > 0) {
+        if (lpTokens[1] == lp1) {
             uint256 lp0Bal = IERC20(lpTokens[0]).balanceOf(address(this));
             (uint256 lp0Amt, uint256 lp1Amt) = _calcSwapAmount(lp0Bal);
 
-            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+            IBalancerVault.BatchSwapStep[] memory _swap2 = BalancerActionsLib.buildSwapStructArray(
                 lp0ToLp1Route,
                 lp1Amt
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0Tolp1Assets, funds, int256(lp1Amt));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swap2, lp0Tolp1Assets, funds, int256(lp1Amt));
 
             BalancerActionsLib.multiJoin(
                 unirouter,
@@ -445,7 +445,6 @@ contract StrategyAuraGyroSidechainOmnichainSwap is StratFeeManagerInitializable 
         IERC20(aura).safeApprove(swapper, type(uint).max);
         IERC20(lp0).safeApprove(unirouter, 0);
         IERC20(lp0).safeApprove(unirouter, type(uint).max);
-
         IERC20(lp1).safeApprove(unirouter, 0);
         IERC20(lp1).safeApprove(unirouter, type(uint).max);
         if (rewardTokens.length != 0) {
