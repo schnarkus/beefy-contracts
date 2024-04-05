@@ -50,6 +50,7 @@
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
     "deploy:contract": "hardhat run scripts/infra/deployContract.js --network optimism",
+    "reward": "hardhat run scripts/vault/add-rewards-v3.js --network optimism",
     "zap": "hardhat run ./scripts/infra/zapViaAggregator.js --network",
     "flat-hardhat": "hardhat flatten contracts/BIFI/infra/BeefyFeeConfigurator.sol > tmp/flattened.sol",
     "flat": "bin/flatten.sh",
