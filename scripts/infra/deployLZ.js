@@ -10,7 +10,7 @@ const {
 } = addressBook.base;
 
 const aura = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
-const stargate = web3.utils.toChecksumAddress("0x45f1A95A4D3f3836523F5c83673c797f4d4d263B");
+const stargate = web3.utils.toChecksumAddress("0xeCc19E177d24551aA7ed6Bc6FE566eCa726CC8a9");
 const endpoint = web3.utils.toChecksumAddress("0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7");
 
 const config = {

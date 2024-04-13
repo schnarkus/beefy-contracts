@@ -4,10 +4,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin-4/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/common/IUniswapRouterETH.sol";
 import "../../interfaces/beethovenx/IBalancerVault.sol";
 import "../../interfaces/aura/IAuraRewardPool.sol";
-import "../../interfaces/curve/IStreamer.sol";
 import "../../interfaces/aura/IAuraBooster.sol";
 import "../../interfaces/common/IWrappedNative.sol";
 import "../Common/StratFeeManagerInitializable.sol";
@@ -17,8 +15,6 @@ import "../../utils/UniV3Actions.sol";
 
 interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
-
-    function getTokenRates() external view returns (uint256, uint256);
 }
 
 interface ISwapper {
@@ -103,7 +99,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         native = nativeToInputAssets[0];
         input.input = nativeToInputAssets[nativeToInputAssets.length - 1];
         input.isComposable = _inputIsComposable;
-        uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+        uniswapRouter = address(0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE);
         swapper = _swapper;
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
@@ -225,7 +221,7 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
                         int256(bal)
                     );
                 } else {
-                    UniV3Actions.swapV3WithDeadline(uniswapRouter, rewards[rewardTokens[i]].routeToNative, bal);
+                    UniV3Actions.swapV3(uniswapRouter, rewards[rewardTokens[i]].routeToNative, bal);
                 }
             }
         }
@@ -235,10 +231,10 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
         uint256 balanceThis = address(this).balance;
         uint256 gasNeeded = ISwapper(swapper).estimate(auraBal);
 
-        if (auraBal > minSwap) {
-            if ((nativeBal + balanceThis) >= gasNeeded) {
-                uint256 nativeToWithdraw = gasNeeded <= balanceThis ? 0 : gasNeeded - balanceThis;
-                if (nativeToWithdraw > 0) IWrappedNative(native).withdraw(nativeToWithdraw);
+        if ((nativeBal + balanceThis) >= gasNeeded) {
+            uint256 nativeToWithdraw = gasNeeded <= balanceThis ? 0 : gasNeeded - balanceThis;
+            if (auraBal > minSwap) {
+                IWrappedNative(native).withdraw(nativeToWithdraw);
                 ISwapper(swapper).swapAura{value: gasNeeded}(auraBal);
             }
         }
@@ -264,43 +260,18 @@ contract StrategyAuraSideChainOmnichainSwap is StratFeeManagerInitializable {
     // Adds liquidity to AMM and gets more LP tokens.
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
-        if (nativeBal > 0) {
-            (uint256 lp0Amt, uint256 lp1Amt) = _calcSwapAmount();
-
+        if (native != input.input) {
             IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
                 nativeToInputRoute,
-                lp1Amt
+                nativeBal
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToInputAssets, funds, int256(lp1Amt));
-
-            BalancerActionsLib.multiJoin(
-                unirouter,
-                want,
-                IBalancerPool(want).getPoolId(),
-                native,
-                input.input,
-                lp0Amt,
-                IERC20(input.input).balanceOf(address(this))
-            );
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToInputAssets, funds, int256(nativeBal));
         }
-    }
 
-    function _calcSwapAmount() private view returns (uint256 lp0Amt, uint256 lp1Amt) {
-        uint256 nativeBal = IERC20(native).balanceOf(address(this));
-        lp0Amt = nativeBal / 2;
-        lp1Amt = nativeBal - lp0Amt;
-
-        (uint256 rate0, uint256 rate1) = IBalancerPool(want).getTokenRates();
-
-        (, uint256[] memory balances, ) = IBalancerVault(unirouter).getPoolTokens(IBalancerPool(want).getPoolId());
-        uint256 supply = IERC20(want).totalSupply();
-
-        uint256 amountA = (balances[0] * 1e18) / supply;
-        uint256 amountB = (balances[1] * 1e18) / supply;
-
-        uint256 ratio = (((rate0 * 1e18) / rate1) * amountB) / amountA;
-        lp0Amt = (nativeBal * 1e18) / (ratio + 1e18);
-        lp1Amt = nativeBal - lp0Amt;
+        if (input.input != want) {
+            uint256 inputBal = IERC20(input.input).balanceOf(address(this));
+            BalancerActionsLib.balancerJoin(unirouter, IBalancerPool(want).getPoolId(), input.input, inputBal);
+        }
     }
 
     function lockedProfit() public view returns (uint256) {

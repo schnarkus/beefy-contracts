@@ -45,7 +45,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     avax: {
-      url: process.env.AVAX_RPC || "https://rpc.ankr.com/avalanche",
+      url: process.env.AVAX_RPC || "https://api.avax.network/ext/bc/C/rpc",
       chainId: 43114,
       accounts,
     },
@@ -167,6 +167,7 @@ const config: DeploymentConfig = {
       arbitrumOne: process.env.ARBITRUM_API_KEY!,
       base: process.env.BASE_API_KEY!,
       opera: process.env.OPERA_API_KEY!,
+      avalanche: "your API key",
     },
     customChains: [
       {
