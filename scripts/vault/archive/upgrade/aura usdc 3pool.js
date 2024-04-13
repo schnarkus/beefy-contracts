@@ -15,11 +15,11 @@ const {
 const BAL = web3.utils.toChecksumAddress("0x4158734D47Fc9692176B5085E0F52ee0Da5d47F1");
 const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
 
-const want = web3.utils.toChecksumAddress("0x52e281318Fed4eFFfb8E46c0847a8f9B71a461A8");
+const want = web3.utils.toChecksumAddress("0x0C659734f1eEF9C63B7Ebdf78a164CDd745586Db");
 
 const vaultParams = {
-  mooName: "Moo Aura Base tBTC-WETH",
-  mooSymbol: "mooAuraBasetBTC-WETH",
+  mooName: "Moo Aura Dummy Base USDC/USDbC/axlUSDC",
+  mooSymbol: "mooAuraDummyBaseUSDC/USDbC/axlUSDC",
   delay: 21600,
 };
 
@@ -27,12 +27,12 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  inputIsComposable: false,
-  nativeToInputRoute: [["0x52e281318fed4efffb8e46c0847a8f9b71a461a8000200000000000000000018", 0, 0],],
+  inputIsComposable: true,
+  nativeToInputRoute: [["0x433f09ca08623e48bac7128b7105de678e37d988000100000000000000000047", 0, 1], ["0x0c659734f1eef9c63b7ebdf78a164cdd745586db000000000000000000000046", 1, 2]],
   outputToNativeRoute: [["0xb328b50f1f7d97ee8ea391ab5096dd7657555f49000100000000000000000048", 0, 1], ["0x433f09ca08623e48bac7128b7105de678e37d988000100000000000000000047", 1, 2]],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  pid: 6,
-  nativeToInput: [ETH],
+  pid: 2,
+  nativeToInput: [ETH, USDC, want],
   outputToNative: [BAL, USDC, ETH],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
