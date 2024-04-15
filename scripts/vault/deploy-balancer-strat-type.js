@@ -7,19 +7,18 @@ import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/Strateg
 const {
   platforms: { balancer, beefyfinance },
   tokens: {
+    BAL: { address: BAL },
     ETH: { address: ETH },
-    USDC: { address: USDC },
+    wstETH: { address: wstETH },
   },
-} = addressBook.base;
+} = addressBook.arbitrum;
 
-const BAL = web3.utils.toChecksumAddress("0x4158734D47Fc9692176B5085E0F52ee0Da5d47F1");
 const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
-
-const want = web3.utils.toChecksumAddress("0x52e281318Fed4eFFfb8E46c0847a8f9B71a461A8");
+const want = web3.utils.toChecksumAddress("0xB61371Ab661B1ACec81C699854D2f911070C059E");
 
 const vaultParams = {
-  mooName: "Moo Aura Base tBTC-WETH",
-  mooSymbol: "mooAuraBasetBTC-WETH",
+  mooName: "Moo Aura Arb ezETH-wstETH",
+  mooSymbol: "mooAuraArbezETH-wstETH",
   delay: 21600,
 };
 
@@ -27,27 +26,26 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  inputIsComposable: false,
-  nativeToInputRoute: [["0x52e281318fed4efffb8e46c0847a8f9b71a461a8000200000000000000000018", 0, 0],],
-  outputToNativeRoute: [["0xb328b50f1f7d97ee8ea391ab5096dd7657555f49000100000000000000000048", 0, 1], ["0x433f09ca08623e48bac7128b7105de678e37d988000100000000000000000047", 1, 2]],
+  inputIsComposable: true,
+  nativeToInputRoute: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1], ["0xb61371ab661b1acec81c699854d2f911070c059e000000000000000000000516", 1, 2]],
+  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  pid: 6,
-  nativeToInput: [ETH],
-  outputToNative: [BAL, USDC, ETH],
+  pid: 54,
+  nativeToInput: [ETH, wstETH, want],
+  outputToNative: [BAL, ETH],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xCa4E16732268bb2a38DE00439F064F39236834D3",
+  strategyImplementation: "0x59F18f6a15314ECe44198948995128e0Fc6bd13f",
   extraReward: true,
-  secondExtraReward: false,
-  rewardAssets: [AURA, ETH],
+  rewardAssets: [AURA, BAL, ETH],
   rewardRoute: [
-    ["0xcb470da0902e6c548f0e8161042f624599286e9b000200000000000000000105", 0, 1]
+    ["0xbcaa6c053cab3dd73a2e898d89a4f84a180ae1ca000100000000000000000458", 0, 1],
+    ["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 1, 2],
   ],
-  secondRewardAssets: [USDC, ETH],
 };
 
 async function main() {

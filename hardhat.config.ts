@@ -65,7 +65,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     arbitrum: {
-      url: process.env.ARBITRUM_RPC || "https://arb1.arbitrum.io/rpc",
+      url: process.env.ARBITRUM_RPC || "https://arbitrum.llamarpc.com",
       chainId: 42161,
       accounts,
     },
