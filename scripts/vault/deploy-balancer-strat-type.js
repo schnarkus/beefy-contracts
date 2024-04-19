@@ -2,50 +2,43 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraSideChain.sol/StrategyAuraSideChain.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyBalancerMultiRewardChefUniV2.sol/StrategyBalancerMultiRewardChefUniV2.json";
 
 const {
-  platforms: { balancer, beefyfinance },
+  platforms: { beethovenx, beefyfinance },
   tokens: {
-    BAL: { address: BAL },
-    ETH: { address: ETH },
-    wstETH: { address: wstETH },
+    FTM: { address: FTM },
+    BEETS: { address: BEETS },
+    lzUSDC: { address: lzUSDC },
   },
-} = addressBook.arbitrum;
+} = addressBook.fantom;
 
-const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
-const want = web3.utils.toChecksumAddress("0xB61371Ab661B1ACec81C699854D2f911070C059E");
+const want = web3.utils.toChecksumAddress("0xaAc7B8d6D7009428d6DdaD895bdf50C6FCBbe2C0");
 
 const vaultParams = {
-  mooName: "Moo Aura Arb ezETH-wstETH",
-  mooSymbol: "mooAuraArbezETH-wstETH",
+  mooName: "Moo Beets Trio of the Stables",
+  mooSymbol: "mooBeetsTriooftheStables",
   delay: 21600,
-};
-
-const bytes0 = "0x0000000000000000000000000000000000000000000000000000000000000000";
+}
 
 const strategyParams = {
   want: want,
-  inputIsComposable: true,
-  nativeToInputRoute: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1], ["0xb61371ab661b1acec81c699854d2f911070c059e000000000000000000000516", 1, 2]],
-  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
-  booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  pid: 54,
-  nativeToInput: [ETH, wstETH, want],
-  outputToNative: [BAL, ETH],
-  unirouter: balancer.router,
+  switches: [1, 0],
+  nativeToInputRoute: [["0x838229095fa83bcd993ef225d01a990e3bc197a800020000000000000000075b", 0, 1], ["0xaac7b8d6d7009428d6ddad895bdf50c6fcbbe2c000000000000000000000080d", 1, 2]],
+  outputToNativeRoute: [["0x9e4341acef4147196e99d648c5e43b3fc9d026780002000000000000000005ec", 0, 1]],
+  assets: [
+    [BEETS, FTM],
+    [FTM, lzUSDC, want],
+  ],
+  chef: beethovenx.masterchef,
+  poolId: 156,
+  unirouter: beethovenx.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x59F18f6a15314ECe44198948995128e0Fc6bd13f",
-  extraReward: true,
-  rewardAssets: [AURA, BAL, ETH],
-  rewardRoute: [
-    ["0xbcaa6c053cab3dd73a2e898d89a4f84a180ae1ca000100000000000000000458", 0, 1],
-    ["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 1, 2],
-  ],
+  strategyImplementation: "0x48F758a1d39f6fFae3C94f14FCe8b7064a700b95",
 };
 
 async function main() {
@@ -95,13 +88,12 @@ async function main() {
 
   const strategyConstructorArguments = [
     want,
-    strategyParams.inputIsComposable,
+    strategyParams.switches,
     strategyParams.nativeToInputRoute,
     strategyParams.outputToNativeRoute,
-    strategyParams.booster,
-    strategyParams.pid,
-    strategyParams.nativeToInput,
-    strategyParams.outputToNative,
+    strategyParams.assets,
+    strategyParams.chef,
+    strategyParams.poolId,
     [
       vault,
       strategyParams.unirouter,
@@ -120,20 +112,6 @@ async function main() {
   stratInitTx.status === 1
     ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
     : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
-
-  if (strategyParams.extraReward) {
-    stratInitTx = await stratContract.addRewardToken(
-      strategyParams.rewardAssets[0],
-      strategyParams.rewardRoute,
-      strategyParams.rewardAssets,
-      bytes0,
-      100
-    );
-    stratInitTx = await stratInitTx.wait();
-    stratInitTx.status === 1
-      ? console.log(`AURA Reward Added with tx: ${stratInitTx.transactionHash}`)
-      : console.log(`AURA Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
-  }
 }
 
 main()
