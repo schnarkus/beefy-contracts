@@ -4,34 +4,47 @@ pragma solidity ^0.8.0;
 import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/common/ISolidlyPair.sol";
+import "../../interfaces/common/IUniswapRouterETH.sol";
 import "../../interfaces/sushi/IMiniChefV2.sol";
-import "../../interfaces/sushi/IRewarder.sol";
 import "../../interfaces/common/IERC20Extended.sol";
 import "../Common/StratFeeManagerInitializable.sol";
 import "../../utils/GasFeeThrottler.sol";
 import "../../utils/AlgebraUtils.sol";
 
 interface IGammaUniProxy {
-    function getDepositAmount(address pos, address token, uint _deposit) external view returns (uint amountStart, uint amountEnd);
-    function deposit(uint deposit0, uint deposit1, address to, address pos, uint[4] memory minIn) external returns (uint shares);
+    function getDepositAmount(
+        address pos,
+        address token,
+        uint _deposit
+    ) external view returns (uint amountStart, uint amountEnd);
+
+    function deposit(
+        uint deposit0,
+        uint deposit1,
+        address to,
+        address pos,
+        uint[4] memory minIn
+    ) external returns (uint shares);
 }
 
 interface IAlgebraPool {
-    function pool() external view returns(address);
-    function globalState() external view returns(uint);
+    function pool() external view returns (address);
+
+    function globalState() external view returns (uint);
 }
 
 interface IAlgebraQuoter {
     function quoteExactInput(bytes memory path, uint amountIn) external returns (uint amountOut, uint16[] memory fees);
 }
 
-interface IdQuick {
-    function leave(uint256 amount) external; 
-    function dQuickForQuick(uint256 amount) external view returns (uint256);
+interface IHypervisor {
+    function whitelistedAddress() external view returns (address);
 }
 
-interface IHypervisor {
-    function whitelistedAddress() external view returns (address uniProxy);
+interface IdQuick {
+    function leave(uint256 amount) external;
+
+    function dQuickForQuick(uint256 amount) external view returns (uint256);
 }
 
 contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
@@ -53,28 +66,35 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
     uint256 public pid;
-    
+
     bytes public outputToNativePath;
     bytes public nativeToLp0Path;
     bytes public nativeToLp1Path;
 
-    mapping (address => bytes) public rewardsPath; 
+    struct Reward {
+        address router;
+        address[] route;
+        bytes path;
+    }
+
     address[] public rewards;
+    mapping(address => Reward) public rewardDetails;
 
     event StratHarvest(address indexed harvester, uint256 wantHarvested, uint256 tvl);
     event Deposit(uint256 tvl);
     event Withdraw(uint256 tvl);
     event ChargedFees(uint256 callFees, uint256 beefyFees, uint256 strategistFees);
+    event SetGammaUniProxy(address oldUniProxy, address newUniProxy);
 
     function initialize(
         address _want,
         address _chef,
-        uint256 _pid, 
+        uint256 _pid,
         bytes calldata _outputToNativePath,
         bytes calldata _nativeToLp0Path,
         bytes calldata _nativeToLp1Path,
         CommonAddresses calldata _commonAddresses
-     ) public initializer  {
+    ) public initializer {
         __StratFeeManager_init(_commonAddresses);
         want = _want;
         chef = _chef;
@@ -118,7 +138,7 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         }
 
         if (tx.origin != owner() && !paused()) {
-            uint256 withdrawalFeeAmount = wantBal * withdrawalFee / WITHDRAWAL_MAX;
+            uint256 withdrawalFeeAmount = (wantBal * withdrawalFee) / WITHDRAWAL_MAX;
             wantBal = wantBal - withdrawalFeeAmount;
         }
 
@@ -134,11 +154,11 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         }
     }
 
-    function harvest() external gasThrottle virtual {
+    function harvest() external virtual gasThrottle {
         _harvest(tx.origin);
     }
 
-    function harvest(address callFeeRecipient) external gasThrottle virtual {
+    function harvest(address callFeeRecipient) external virtual gasThrottle {
         _harvest(callFeeRecipient);
     }
 
@@ -166,22 +186,32 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
 
         for (uint i; i < rewards.length; ++i) {
             uint rewardBal = IERC20(rewards[i]).balanceOf(address(this));
-            if (rewardBal > 0) AlgebraUtils.swap(unirouter, rewardsPath[rewards[i]], rewardBal);
+            Reward memory _reward = rewardDetails[rewards[i]];
+            if (rewardBal > 0)
+                if (_reward.route[0] == address(0)) AlgebraUtils.swap(_reward.router, _reward.path, rewardBal);
+                else
+                    IUniswapRouterETH(_reward.router).swapExactTokensForTokens(
+                        rewardBal,
+                        0,
+                        _reward.route,
+                        address(this),
+                        block.timestamp
+                    );
         }
     }
 
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
         IFeeConfig.FeeCategory memory fees = getFees();
-        uint256 nativeBal = IERC20(native).balanceOf(address(this)) * fees.total / DIVISOR;
+        uint256 nativeBal = (IERC20(native).balanceOf(address(this)) * fees.total) / DIVISOR;
 
-        uint256 callFeeAmount = nativeBal * fees.call / DIVISOR;
+        uint256 callFeeAmount = (nativeBal * fees.call) / DIVISOR;
         IERC20(native).safeTransfer(callFeeRecipient, callFeeAmount);
 
-        uint256 beefyFeeAmount = nativeBal * fees.beefy / DIVISOR;
+        uint256 beefyFeeAmount = (nativeBal * fees.beefy) / DIVISOR;
         IERC20(native).safeTransfer(beefyFeeRecipient, beefyFeeAmount);
 
-        uint256 strategistFeeAmount = nativeBal * fees.strategist / DIVISOR;
+        uint256 strategistFeeAmount = (nativeBal * fees.strategist) / DIVISOR;
         IERC20(native).safeTransfer(strategist, strategistFeeAmount);
 
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
@@ -208,14 +238,13 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         } else if (lp1Bal < amount1Start) {
             (, lp0Bal) = gammaProxy().getDepositAmount(want, lpToken1, lp1Bal);
         }
-        
+
         if (lp0Bal > amount0End) {
             lp0Bal = amount0End;
         }
 
         uint[4] memory minIn;
         gammaProxy().deposit(lp0Bal, lp1Bal, address(this), want, minIn);
-
     }
 
     function quoteAddLiquidity() internal returns (uint toLp0, uint toLp1) {
@@ -223,32 +252,33 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         uint ratio;
 
         if (isFastQuote) {
-            uint lp0Decimals = 10**IERC20Extended(lpToken0).decimals();
-            uint lp1Decimals = 10**IERC20Extended(lpToken1).decimals();
-            uint decimalsDiff = 1e18 * lp0Decimals / lp1Decimals;
+            uint lp0Decimals = 10 ** IERC20Extended(lpToken0).decimals();
+            uint lp1Decimals = 10 ** IERC20Extended(lpToken1).decimals();
+            uint decimalsDiff = (1e18 * lp0Decimals) / lp1Decimals;
             uint decimalsDenominator = decimalsDiff > 1e12 ? 1e6 : 1;
             uint sqrtPriceX96 = IAlgebraPool(IAlgebraPool(want).pool()).globalState();
-            uint price = sqrtPriceX96 ** 2 * (decimalsDiff / decimalsDenominator) / (2 ** 192) * decimalsDenominator;
+            uint price = ((sqrtPriceX96 ** 2 * (decimalsDiff / decimalsDenominator)) / (2 ** 192)) *
+                decimalsDenominator;
             (uint amountStart, uint amountEnd) = gammaProxy().getDepositAmount(want, lpToken0, lp0Decimals);
-            uint amountB = (amountStart + amountEnd) / 2 * 1e18 / lp1Decimals;
-            ratio = amountB * 1e18 / price;
+            uint amountB = (((amountStart + amountEnd) / 2) * 1e18) / lp1Decimals;
+            ratio = (amountB * 1e18) / price;
         } else {
             uint lp0Amt = nativeBal / 2;
             uint lp1Amt = nativeBal - lp0Amt;
             uint out0 = lp0Amt;
             uint out1 = lp1Amt;
             if (nativeToLp0Path.length > 0) {
-                (out0,) = quoter.quoteExactInput(nativeToLp0Path, lp0Amt);
+                (out0, ) = quoter.quoteExactInput(nativeToLp0Path, lp0Amt);
             }
             if (nativeToLp1Path.length > 0) {
-                (out1,) = quoter.quoteExactInput(nativeToLp1Path, lp1Amt);
+                (out1, ) = quoter.quoteExactInput(nativeToLp1Path, lp1Amt);
             }
             (uint amountStart, uint amountEnd) = gammaProxy().getDepositAmount(want, lpToken0, out0);
             uint amountB = (amountStart + amountEnd) / 2;
-            ratio = amountB * 1e18 / out1;
+            ratio = (amountB * 1e18) / out1;
         }
 
-        toLp0 = nativeBal * 1e18 / (ratio + 1e18);
+        toLp0 = (nativeBal * 1e18) / (ratio + 1e18);
         toLp1 = nativeBal - toLp0;
     }
 
@@ -256,23 +286,23 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         isFastQuote = _isFastQuote;
     }
 
-    function addReward(address _token, bytes calldata _path) external onlyOwner {
-        address[] memory route = AlgebraUtils.pathToRoute(_path);
-        require(route[0] == _token, "!output");
-        require(route[route.length -1] == native, "!native");
+    function addReward(address _token, Reward calldata _reward) external onlyOwner {
+        address[] memory route;
+        if (_reward.route[0] == address(0)) route = AlgebraUtils.pathToRoute(_reward.path);
+        else route = _reward.route;
 
-        IERC20(_token).safeApprove(unirouter, 0);
-        IERC20(_token).safeApprove(unirouter, type(uint).max);
+        require(route[0] == _token, "!output");
+        require(route[route.length - 1] == native, "!native");
+
+        IERC20(_token).safeApprove(_reward.router, 0);
+        IERC20(_token).safeApprove(_reward.router, type(uint).max);
 
         rewards.push(_token);
-        rewardsPath[_token] = _path;
+        rewardDetails[_token] = _reward;
     }
 
     function deleteRewards() external onlyManager {
-        for (uint256 i; i < rewards.length; ++i) {
-            delete rewardsPath[rewards[i]];
-        }
-
+        for (uint i; i < rewards.length; ++i) delete rewardDetails[rewards[i]];
         delete rewards;
     }
 
@@ -288,7 +318,7 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256 amount) {
-        (amount,) = IMiniChefV2(chef).userInfo(pid, address(this));
+        (amount, ) = IMiniChefV2(chef).userInfo(pid, address(this));
     }
 
     // returns rewards unharvested
@@ -353,8 +383,9 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         IERC20(native).approve(unirouter, type(uint).max);
 
         for (uint i; i < rewards.length; ++i) {
-            IERC20(rewards[i]).safeApprove(unirouter, 0);
-            IERC20(rewards[i]).safeApprove(unirouter, type(uint).max);
+            Reward memory _reward = rewardDetails[rewards[i]];
+            IERC20(rewards[i]).safeApprove(_reward.router, 0);
+            IERC20(rewards[i]).safeApprove(_reward.router, type(uint).max);
         }
 
         IERC20(lpToken0).approve(want, 0);
@@ -369,7 +400,8 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         IERC20(native).approve(unirouter, 0);
 
         for (uint i; i < rewards.length; ++i) {
-            IERC20(rewards[i]).safeApprove(unirouter, 0);
+            Reward memory _reward = rewardDetails[rewards[i]];
+            IERC20(rewards[i]).safeApprove(_reward.router, 0);
         }
 
         IERC20(lpToken0).approve(want, 0);
@@ -402,10 +434,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         nativeToLp1Path = _nativeToLp1Path;
     }
 
-    function gammaProxy() public view returns (IGammaUniProxy uniProxy) {
-        uniProxy = IGammaUniProxy(IHypervisor(want).whitelistedAddress());
-    }
-
     function outputToNative() external view returns (address[] memory) {
         return AlgebraUtils.pathToRoute(outputToNativePath);
     }
@@ -418,7 +446,13 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         return AlgebraUtils.pathToRoute(nativeToLp1Path);
     }
 
+    function gammaProxy() public view returns (IGammaUniProxy _gammaProxy) {
+        return IGammaUniProxy(IHypervisor(want).whitelistedAddress());
+    }
+
     function rewardsRoute(uint index) external view returns (address[] memory) {
-        return AlgebraUtils.pathToRoute(rewardsPath[rewards[index]]);
+        Reward memory _reward = rewardDetails[rewards[index]];
+        if (_reward.route[0] == address(0)) return AlgebraUtils.pathToRoute(_reward.path);
+        else return _reward.route;
     }
 }
