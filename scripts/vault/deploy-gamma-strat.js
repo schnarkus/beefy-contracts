@@ -40,8 +40,8 @@ const strategyParams = {
   strategyChefImplementation: "0x1e266f79f28fdc255ceaf5fcac763eb1bc61802f",
   chefStrat: true,
   addReward: false,
-  rewardToken: SD,
-  rewardPath: ethers.utils.solidityPack(["address", "address", "address"], [SD, USDC, MATIC])
+  // rewardToken: SD,
+  // rewardPath: ethers.utils.solidityPack(["address", "address", "address"], [SD, USDC, MATIC])
 };
 
 async function main() {
