@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0; 
+pragma solidity ^0.8.0;
 import "../interfaces/common/IKyberElastic.sol";
 import "../interfaces/common/IUniswapRouterV3.sol";
 import "../interfaces/common/IUniswapRouterV3WithDeadline.sol";
+import "../interfaces/common/ITraderJoeRouter.sol";
 
 library UniV3Actions {
-     // kyber V3 swap
+    // kyber V3 swap
     function kyberSwap(address _router, bytes memory _path, uint256 _amount) internal returns (uint256 amountOut) {
         IKyberElastic.ExactInputParams memory swapParams = IKyberElastic.ExactInputParams({
             path: _path,
@@ -29,26 +30,46 @@ library UniV3Actions {
     }
 
     // Uniswap V3 swap with deadline
-    function swapV3WithDeadline(address _router, bytes memory _path, uint256 _amount) internal returns (uint256 amountOut) {
-        IUniswapRouterV3WithDeadline.ExactInputParams memory swapParams = IUniswapRouterV3WithDeadline.ExactInputParams({
-            path: _path,
-            recipient: address(this),
-            deadline: block.timestamp,
-            amountIn: _amount,
-            amountOutMinimum: 0
-        });
+    function swapV3WithDeadline(
+        address _router,
+        bytes memory _path,
+        uint256 _amount
+    ) internal returns (uint256 amountOut) {
+        IUniswapRouterV3WithDeadline.ExactInputParams memory swapParams = IUniswapRouterV3WithDeadline
+            .ExactInputParams({
+                path: _path,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amount,
+                amountOutMinimum: 0
+            });
         return IUniswapRouterV3WithDeadline(_router).exactInput(swapParams);
     }
 
     // Uniswap V3 swap with deadline
-    function swapV3WithDeadline(address _router, bytes memory _path, uint256 _amount, address _to) internal returns (uint256 amountOut) {
-        IUniswapRouterV3WithDeadline.ExactInputParams memory swapParams = IUniswapRouterV3WithDeadline.ExactInputParams({
-            path: _path,
-            recipient: _to,
-            deadline: block.timestamp,
-            amountIn: _amount,
-            amountOutMinimum: 0
-        });
+    function swapV3WithDeadline(
+        address _router,
+        bytes memory _path,
+        uint256 _amount,
+        address _to
+    ) internal returns (uint256 amountOut) {
+        IUniswapRouterV3WithDeadline.ExactInputParams memory swapParams = IUniswapRouterV3WithDeadline
+            .ExactInputParams({
+                path: _path,
+                recipient: _to,
+                deadline: block.timestamp,
+                amountIn: _amount,
+                amountOutMinimum: 0
+            });
         return IUniswapRouterV3WithDeadline(_router).exactInput(swapParams);
+    }
+
+    function swapLiquidityBook(
+        address _router,
+        ITraderJoeRouter.Path memory _path,
+        uint256 _amount,
+        address _to
+    ) internal returns (uint256 amountOut) {
+        return ITraderJoeRouter(_router).swapExactTokensForTokens(_amount, 0, _path, _to, block.timestamp);
     }
 }

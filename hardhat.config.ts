@@ -45,7 +45,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     avax: {
-      url: process.env.AVAX_RPC || "https://rpc.ankr.com/avalanche",
+      url: process.env.AVAX_RPC || "https://api.avax.network/ext/bc/C/rpc",
       chainId: 43114,
       accounts,
     },
@@ -172,6 +172,7 @@ const config: DeploymentConfig = {
       bsc: process.env.BSC_API_KEY!,
       optimisticEthereum: process.env.OPTIMISM_API_KEY!,
       base: process.env.BASE_API_KEY!,
+      avalanche: process.env.AVAX_API_KEY!,
     },
     customChains: [
       {
