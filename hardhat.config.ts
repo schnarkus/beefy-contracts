@@ -156,6 +156,11 @@ const config: DeploymentConfig = {
       chainId: 8453,
       accounts,
     },
+    linea: {
+      url: process.env.LINEA_RPC || "https://linea.decubate.com",
+      chainId: 59144,
+      accounts,
+    },
   },
   etherscan: {
     // Your API key for Etherscan
