@@ -51,7 +51,7 @@
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
     "deploy:contract": "hardhat run scripts/infra/deployContract.js --network avax",
-    "reward": "hardhat run scripts/vault/add-aura.js --network arbitrum",
+    "reward": "hardhat run scripts/vault/add-rewards-avax-bal.js --network avax",
     "zap": "hardhat run ./scripts/infra/zapViaAggregator.js --network",
     "flat-hardhat": "hardhat flatten contracts/BIFI/strategies/Balancer/StrategyBalancerMultiReward.sol> tmp/flattened.sol",
     "flat": "bin/flatten.sh",

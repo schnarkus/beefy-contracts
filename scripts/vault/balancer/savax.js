@@ -17,11 +17,14 @@ const {
   tokens: {
     BAL: { address: BAL },
     AVAX: { address: AVAX },
+    aQI: { address: aQI },
   },
 } = addressBook.avax;
 
 const want = web3.utils.toChecksumAddress("0xfD2620C9cfceC7D152467633B3B0Ca338D3d78cc");
 const gauge = web3.utils.toChecksumAddress("0xf9aE6D2D56f02304f72dcC61694eAD0dC8DB51f7");
+
+const pangolinRouter = web3.utils.toChecksumAddress("0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106");
 
 const vaultParams = {
   mooName: "Moo Balancer Avax sAVAX-WAVAX",
@@ -45,6 +48,9 @@ const strategyParams = {
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
   strategyImplementation: "0x8eA4805A0652FF9Bc06311cB98c7178873B4b13C",
+  secondExtraReward: true,
+  secondRewardAssets: [aQI, AVAX],
+  secondRewardRoute: [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
 };
 
 async function main() {
@@ -121,6 +127,24 @@ async function main() {
   stratInitTx.status === 1
     ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
     : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
+
+
+  if (strategyParams.secondExtraReward) {
+    stratInitTx = await stratContract.addRewardToken(
+      strategyParams.secondRewardAssets[0],
+      pangolinRouter,
+      RouterType.UNISWAP_V2, // Use the enum value directly as a BigNumber
+      strategyParams.secondRewardRoute,
+      strategyParams.secondRewardAssets,
+      [aQi, AVAX],
+      [],
+      0
+    );
+    stratInitTx = await stratInitTx.wait();
+    stratInitTx.status === 1
+      ? console.log(`QI Reward Added with tx: ${stratInitTx.transactionHash}`)
+      : console.log(`QI Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
+  }
 }
 
 main()

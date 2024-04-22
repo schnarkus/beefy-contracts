@@ -20,22 +20,22 @@ const {
   },
 } = addressBook.avax;
 
-const want = web3.utils.toChecksumAddress("0xfD2620C9cfceC7D152467633B3B0Ca338D3d78cc");
-const gauge = web3.utils.toChecksumAddress("0xf9aE6D2D56f02304f72dcC61694eAD0dC8DB51f7");
+const want = web3.utils.toChecksumAddress("0x0df1Be54B29aA9828Bea1De6A6DFE3d03EC63082");
+const gauge = web3.utils.toChecksumAddress("0x72dD9b41FEc59cf58140cAb9C92CEfC8F212354D");
 
 const vaultParams = {
-  mooName: "Moo Balancer Avax sAVAX-WAVAX",
-  mooSymbol: "mooBalancerAvaxsAVAX-WAVAX",
+  mooName: "Moo Balancer Avax AF Culture Coins",
+  mooSymbol: "mooBalancerAvaxAFCultureCoins",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  inputIsComposable: true,
+  inputIsComposable: false,
   balSwapOn: true,
-  nativeToInputRoute: [["0xfd2620c9cfcec7d152467633b3b0ca338d3d78cc00000000000000000000001c", 0, 1]],
+  nativeToInputRoute: [["0x0df1be54b29aa9828bea1de6a6dfe3d03ec63082000100000000000000000047", 0, 0]],
   outputToNativeRoute: [["0xa39d8651689c8b6e5a9e0aa4362629aef2c58f55000200000000000000000038", 0, 1]],
-  nativeToInputAssets: [AVAX, want],
+  nativeToInputAssets: [AVAX],
   outputToNativeAssets: [BAL, AVAX],
   rewardsGauge: gauge,
   unirouter: balancer.router,
