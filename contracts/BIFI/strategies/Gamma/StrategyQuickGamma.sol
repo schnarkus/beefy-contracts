@@ -5,7 +5,6 @@ import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/common/ISolidlyPair.sol";
 import "../../interfaces/common/IUniswapRouterETH.sol";
-import "../../interfaces/sushi/IMiniChefV2.sol";
 import "../../interfaces/common/IERC20Extended.sol";
 import "../Common/StratFeeManagerInitializable.sol";
 import "../../utils/GasFeeThrottler.sol";
@@ -47,6 +46,15 @@ interface IdQuick {
     function dQuickForQuick(uint256 amount) external view returns (uint256);
 }
 
+interface IMerklClaimer {
+    function claim(
+        address[] calldata users,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external;
+}
+
 contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     using SafeERC20 for IERC20;
 
@@ -54,18 +62,20 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     address public constant native = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
     address public constant dquick = 0x958d208Cdf087843e9AD98d23823d32E17d723A1;
     address public constant output = 0xB5C064F955D8e7F38fE0460C556a72987494eE17;
+    address public constant merklClaimer = 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
     address public want;
     address public lpToken0;
     address public lpToken1;
 
     // Third party contracts
-    address public chef;
     IAlgebraQuoter public constant quoter = IAlgebraQuoter(0xa15F0D7377B2A0C0c10db057f641beD21028FC89);
 
     bool public isFastQuote;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
-    uint256 public pid;
+
+    uint256 public totalLocked;
+    uint256 public constant DURATION = 1 days;
 
     bytes public outputToNativePath;
     bytes public nativeToLp0Path;
@@ -88,8 +98,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
 
     function initialize(
         address _want,
-        address _chef,
-        uint256 _pid,
         bytes calldata _outputToNativePath,
         bytes calldata _nativeToLp0Path,
         bytes calldata _nativeToLp1Path,
@@ -97,8 +105,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
         want = _want;
-        chef = _chef;
-        pid = _pid;
 
         lpToken0 = ISolidlyPair(want).token0();
         lpToken1 = ISolidlyPair(want).token1();
@@ -115,34 +121,18 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
 
     // puts the funds to work
     function deposit() public whenNotPaused {
-        uint256 wantBal = IERC20(want).balanceOf(address(this));
-
-        if (wantBal > 0) {
-            IMiniChefV2(chef).deposit(pid, wantBal, address(this));
-            emit Deposit(balanceOf());
-        }
+        emit Deposit(balanceOf());
     }
 
     function withdraw(uint256 _amount) external {
         require(msg.sender == vault, "!vault");
 
-        uint256 wantBal = IERC20(want).balanceOf(address(this));
-
-        if (wantBal < _amount) {
-            IMiniChefV2(chef).withdraw(pid, _amount - wantBal, address(this));
-            wantBal = IERC20(want).balanceOf(address(this));
-        }
-
-        if (wantBal > _amount) {
-            wantBal = _amount;
-        }
-
         if (tx.origin != owner() && !paused()) {
-            uint256 withdrawalFeeAmount = (wantBal * withdrawalFee) / WITHDRAWAL_MAX;
-            wantBal = wantBal - withdrawalFeeAmount;
+            uint256 withdrawalFeeAmount = (_amount * withdrawalFee) / WITHDRAWAL_MAX;
+            _amount = _amount - withdrawalFeeAmount;
         }
 
-        IERC20(want).safeTransfer(vault, wantBal);
+        IERC20(want).safeTransfer(vault, _amount);
 
         emit Withdraw(balanceOf());
     }
@@ -152,6 +142,13 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
             require(msg.sender == vault, "!vault");
             _harvest(tx.origin);
         }
+    }
+
+    function claim(address[] calldata _tokens, uint256[] calldata _amounts, bytes32[][] calldata _proofs) external {
+        address[] memory users = new address[](1);
+        users[0] = address(this);
+
+        IMerklClaimer(merklClaimer).claim(users, _tokens, _amounts, _proofs);
     }
 
     function harvest() external virtual gasThrottle {
@@ -164,16 +161,16 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
 
     // compounds earnings and charges performance fee
     function _harvest(address callFeeRecipient) internal whenNotPaused {
-        IMiniChefV2(chef).harvest(pid, address(this));
         uint256 dquickBal = IERC20(dquick).balanceOf(address(this));
         if (dquickBal > 0) IdQuick(dquick).leave(dquickBal);
         uint256 outputBal = IERC20(output).balanceOf(address(this));
         if (outputBal > 0) {
+            uint256 before = balanceOfWant();
             swapRewardsToNative();
             chargeFees(callFeeRecipient);
             addLiquidity();
-            uint256 wantHarvested = balanceOfWant();
-            deposit();
+            uint256 wantHarvested = balanceOfWant() - before;
+            totalLocked = wantHarvested + lockedProfit();
 
             lastHarvest = block.timestamp;
             emit StratHarvest(msg.sender, wantHarvested, balanceOf());
@@ -306,9 +303,15 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
         delete rewards;
     }
 
+    function lockedProfit() public view returns (uint256) {
+        uint256 elapsed = block.timestamp - lastHarvest;
+        uint256 remaining = elapsed < DURATION ? DURATION - elapsed : 0;
+        return (totalLocked * remaining) / DURATION;
+    }
+
     // calculate the total underlaying 'want' held by the strat.
     function balanceOf() public view returns (uint256) {
-        return balanceOfWant() + balanceOfPool();
+        return balanceOfWant() - lockedProfit();
     }
 
     // it calculates how much 'want' this contract holds.
@@ -317,13 +320,13 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     }
 
     // it calculates how much 'want' the strategy has working in the farm.
-    function balanceOfPool() public view returns (uint256 amount) {
-        (amount, ) = IMiniChefV2(chef).userInfo(pid, address(this));
+    function balanceOfPool() public pure returns (uint256) {
+        return 0;
     }
 
     // returns rewards unharvested
-    function rewardsAvailable() public view returns (uint256) {
-        return IMiniChefV2(chef).pendingSushi(pid, address(this));
+    function rewardsAvailable() public pure returns (uint256) {
+        return 0;
     }
 
     // native reward amount for calling harvest
@@ -349,10 +352,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     function retireStrat() external {
         require(msg.sender == vault, "!vault");
 
-        if (balanceOfPool() > 0) {
-            IMiniChefV2(chef).emergencyWithdraw(pid, address(this));
-        }
-
         uint256 wantBal = IERC20(want).balanceOf(address(this));
         IERC20(want).transfer(vault, wantBal);
     }
@@ -360,7 +359,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     // pauses deposits and withdraws all funds from third party systems.
     function panic() public onlyManager {
         pause();
-        IMiniChefV2(chef).emergencyWithdraw(pid, address(this));
     }
 
     function pause() public onlyManager {
@@ -378,7 +376,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     }
 
     function _giveAllowances() internal {
-        IERC20(want).approve(chef, type(uint).max);
         IERC20(output).approve(unirouter, type(uint).max);
         IERC20(native).approve(unirouter, type(uint).max);
 
@@ -395,7 +392,6 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
     }
 
     function _removeAllowances() internal {
-        IERC20(want).approve(chef, 0);
         IERC20(output).approve(unirouter, 0);
         IERC20(native).approve(unirouter, 0);
 
