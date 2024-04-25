@@ -34,7 +34,7 @@ const strategyParams = {
   feeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
   strategyImplementation: "0x",
-  strategyHoldLPImplementation: "0xa102D76565767aFB24cE70478F4058d0Fc73ef8A",
+  strategyHoldLPImplementation: "0xa43AfC157B8c54F4F9F98d829C9553747C948E48",
   holdLPStrat: true,
   addReward: false,
   // rewardToken: SD,
