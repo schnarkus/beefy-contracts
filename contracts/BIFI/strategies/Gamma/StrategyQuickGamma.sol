@@ -257,7 +257,7 @@ contract StrategyQuickGamma is StratFeeManagerInitializable, GasFeeThrottler {
             uint price = ((sqrtPriceX96 ** 2 * (decimalsDiff / decimalsDenominator)) / (2 ** 192)) *
                 decimalsDenominator;
             (uint amountStart, uint amountEnd) = gammaProxy().getDepositAmount(want, lpToken0, lp0Decimals);
-            uint amountB = (((amountStart + amountEnd) / 2) * 1e18) / lp1Decimals;
+            uint amountB = ((amountStart + amountEnd) / 2) * (1e18 / lp1Decimals);
             ratio = (amountB * 1e18) / price;
         } else {
             uint lp0Amt = nativeBal / 2;

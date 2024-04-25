@@ -2,16 +2,15 @@
 
 pragma solidity ^0.8.12;
 
-import "../../../contracts/BIFI/strategies/Gamma/StrategyThenaGamma.sol";
+import "../../../contracts/BIFI/strategies/Gamma/StrategyQuickGamma.sol";
 import "./BaseStrategyTest.t.sol";
 
-contract StrategyThenaGammaTest is BaseStrategyTest {
-
-    StrategyThenaGamma strategy;
+contract StrategyQuickGammaTest is BaseStrategyTest {
+    StrategyQuickGamma strategy;
 
     function createStrategy(address _impl) internal override returns (address) {
-        if (_impl == a0) strategy = new StrategyThenaGamma();
-        else strategy = StrategyThenaGamma(_impl);
+        if (_impl == a0) strategy = new StrategyQuickGamma();
+        else strategy = StrategyQuickGamma(_impl);
         return address(strategy);
     }
 
@@ -50,5 +49,4 @@ contract StrategyThenaGammaTest is BaseStrategyTest {
         assertEq(IERC20(strategy.lpToken0()).balanceOf(address(strategy)), 0, "lp0 balance != 0");
         assertEq(IERC20(strategy.lpToken1()).balanceOf(address(strategy)), 0, "lp1 balance != 0");
     }
-
 }

@@ -2,11 +2,10 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Gamma/StrategyThenaGamma.sol/StrategyThenaGamma.json";
-import stratChefAbi from "../../artifacts/contracts/BIFI/strategies/Gamma/StrategyQuickGamma.sol/StrategyQuickGamma.json";
+import stratHoldLPAbi from "../../artifacts/contracts/BIFI/strategies/Gamma/StrategyQuickGamma.sol/StrategyQuickGamma.json";
 
 const {
-  platforms: { quickswap, beefyfinance },
+  platforms: { beefyfinance },
   tokens: {
     ETH: { address: ETH },
     USDC: { address: USDC },
@@ -18,15 +17,13 @@ const {
 const want = web3.utils.toChecksumAddress("0x3974FbDC22741A1632E024192111107b202F214f");
 
 const vaultParams = {
-  mooName: "Moo Quick USDC-ETH Narrow",
-  mooSymbol: "mooQuickUSDC-ETHNarrow",
+  mooName: "Moo Quick Dummy",
+  mooSymbol: "mooQuickDummy",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  chef: "0x20ec0d06F447d550fC6edee42121bc8C1817b97D",
-  pid: 96,
   outputToNativePath: ethers.utils.solidityPack(["address", "address"], [newQUICK, MATIC]),
   nativeToLp0Path: ethers.utils.solidityPack(["address", "address"], [MATIC, USDC]),
   nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [MATIC, ETH]),
@@ -37,8 +34,8 @@ const strategyParams = {
   feeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
   strategyImplementation: "0x",
-  strategyChefImplementation: "0x1e266f79f28fdc255ceaf5fcac763eb1bc61802f",
-  chefStrat: true,
+  strategyHoldLPImplementation: "0xa102D76565767aFB24cE70478F4058d0Fc73ef8A",
+  holdLPStrat: true,
   addReward: false,
   // rewardToken: SD,
   // rewardPath: ethers.utils.solidityPack(["address", "address", "address"], [SD, USDC, MATIC])
@@ -65,7 +62,7 @@ async function main() {
     ? console.log(`Vault ${vault} is deployed with tx: ${tx.transactionHash}`)
     : console.log(`Vault ${vault} deploy failed with tx: ${tx.transactionHash}`);
 
-  let implementation = strategyParams.chefStrat ? strategyParams.strategyChefImplementation : strategyParams.strategyImplementation;
+  let implementation = strategyParams.holdLPStrat ? strategyParams.strategyHoldLPImplementation : strategyParams.strategyImplementation;
   let strat = await factory.callStatic.cloneContract(implementation);
   let stratTx = await factory.cloneContract(implementation);
   stratTx = await stratTx.wait();
@@ -95,24 +92,6 @@ async function main() {
 
   const strategyConstructorArguments = [
     strategyParams.want,
-    strategyParams.rewardPool,
-    strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route,
-    strategyParams.outputToLp1Route,
-    [
-      vault,
-      strategyParams.unirouter,
-      strategyParams.keeper,
-      strategyParams.strategist,
-      strategyParams.beefyFeeRecipient,
-      strategyParams.feeConfig,
-    ]
-  ];
-
-  const strategyChefConstructorArguments = [
-    strategyParams.want,
-    strategyParams.chef,
-    strategyParams.pid,
     strategyParams.outputToNativePath,
     strategyParams.nativeToLp0Path,
     strategyParams.nativeToLp1Path,
@@ -126,9 +105,24 @@ async function main() {
     ]
   ];
 
-  let abi = strategyParams.chefStrat ? stratChefAbi.abi : stratAbi.abi;
+  const strategyHoldLPConstructorArguments = [
+    strategyParams.want,
+    strategyParams.outputToNativePath,
+    strategyParams.nativeToLp0Path,
+    strategyParams.nativeToLp1Path,
+    [
+      vault,
+      strategyParams.unirouter,
+      strategyParams.keeper,
+      strategyParams.strategist,
+      strategyParams.beefyFeeRecipient,
+      strategyParams.feeConfig,
+    ]
+  ];
+
+  let abi = strategyParams.holdLPStrat ? stratHoldLPAbi.abi : stratAbi.abi;
   const stratContract = await ethers.getContractAt(abi, strat);
-  let args = strategyParams.chefStrat ? strategyChefConstructorArguments : strategyConstructorArguments
+  let args = strategyParams.holdLPStrat ? strategyHoldLPConstructorArguments : strategyConstructorArguments
   let stratInitTx = await stratContract.initialize(...args);
   stratInitTx = await stratInitTx.wait()
   stratInitTx.status === 1

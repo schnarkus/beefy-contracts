@@ -50,10 +50,10 @@ const config: DeploymentConfig = {
       accounts,
     },
     polygon: {
-      url: process.env.POLYGON_RPC || "https://polygon-bor-rpc.publicnode.com",
+      url: process.env.POLYGON_RPC || "https://polygon-rpc.com",
       chainId: 137,
       accounts,
-      gasPrice: 40000000000, // 40 Gwei
+      gasPrice: 400000000000, // 400 Gwei
     },
     fantom: {
       url: process.env.FANTOM_RPC || "https://rpc.ankr.com/fantom",
