@@ -56,7 +56,7 @@ const config: DeploymentConfig = {
       gasPrice: 400000000000, // 400 Gwei
     },
     fantom: {
-      url: process.env.FANTOM_RPC || "https://rpc.ankr.com/fantom",
+      url: process.env.FANTOM_RPC || "https://rpc.ftm.tools",
       chainId: 250,
       accounts,
     },
