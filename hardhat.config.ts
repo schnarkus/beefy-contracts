@@ -132,7 +132,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     optimism: {
-      url: process.env.OPTIMISM_RPC || "https://mainnet.optimism.io",
+      url: process.env.OPTIMISM_RPC || "https://endpoints.omniatech.io/v1/op/mainnet/public",
       chainId: 10,
       accounts,
     },
