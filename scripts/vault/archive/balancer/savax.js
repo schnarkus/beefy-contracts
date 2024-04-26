@@ -15,11 +15,12 @@ const RouterType = {
 const {
   platforms: { balancer, beefyfinance },
   tokens: {
-    BAL: { address: BAL },
     AVAX: { address: AVAX },
     aQI: { address: aQI },
   },
 } = addressBook.avax;
+
+const BAL = web3.utils.toChecksumAddress("0xE15bCB9E0EA69e6aB9FA080c4c4A5632896298C3");
 
 const want = web3.utils.toChecksumAddress("0xfD2620C9cfceC7D152467633B3B0Ca338D3d78cc");
 const gauge = web3.utils.toChecksumAddress("0xf9aE6D2D56f02304f72dcC61694eAD0dC8DB51f7");

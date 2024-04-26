@@ -26,7 +26,7 @@ const {
 async function main() {
     // Get the deployed contract instance
     const StrategyBalancerMultiReward = await hre.ethers.getContractFactory("StrategyBalancerMultiReward");
-    const contractAddress = "0x6981308831f02AF240413400e3D1aeDf0EfE63f0"; // Provide the deployed contract address
+    const contractAddress = "0x09cD0B51DF0A2E8C6238dD269f2f3c789d13b809"; // Provide the deployed contract address
     const contract = await StrategyBalancerMultiReward.attach(contractAddress);
 
     // Specify function arguments for addRewardToken

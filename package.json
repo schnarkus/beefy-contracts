@@ -33,7 +33,7 @@
     "test:harvester": "hardhat test --network localhost test/infra/BeefyAutoHarvester.test.ts",
     "deploy:cake": "hardhat run scripts/vault/deploy-ichi-strat.js --network bsc",
     "deploy:chef": "hardhat run scripts/vault/deploy-generic-chef-strat.ts --network",
-    "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.ts --network",
+    "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.js --network avax",
     "deploy:aura": "hardhat run scripts/vault/deploy-balancer-strat-eth.ts --network",
     "deploy:bifiMaxi": "hardhat run scripts/vault/deploy-bifi-maxi.js --network",
     "deploy:curve": "hardhat run scripts/vault/deploy-curve-strat.ts --network",
@@ -69,7 +69,7 @@
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
     "fork:bsc": "hardhat node --fork bsc",
     "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
-    "verify": "hardhat run scripts/vault/verify.js --network polygon",
+    "verify": "hardhat run scripts/vault/verify.js --network avax",
     "harvest": "hardhat run scripts/vault/harvest.js --network polygon",
     "gauge": "hardhat run scripts/vault/extraGauge.js --network base",
     "token": "hardhat run scripts/vault/rewardTokens.js --network base"

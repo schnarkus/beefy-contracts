@@ -15,27 +15,31 @@ const RouterType = {
 const {
   platforms: { balancer, beefyfinance },
   tokens: {
-    BAL: { address: BAL },
     AVAX: { address: AVAX },
+    aQI: { address: aQI },
   },
 } = addressBook.avax;
 
-const want = web3.utils.toChecksumAddress("0x0df1Be54B29aA9828Bea1De6A6DFE3d03EC63082");
-const gauge = web3.utils.toChecksumAddress("0x72dD9b41FEc59cf58140cAb9C92CEfC8F212354D");
+const BAL = web3.utils.toChecksumAddress("0xE15bCB9E0EA69e6aB9FA080c4c4A5632896298C3");
+
+const want = web3.utils.toChecksumAddress("0xfD2620C9cfceC7D152467633B3B0Ca338D3d78cc");
+const gauge = web3.utils.toChecksumAddress("0xf9aE6D2D56f02304f72dcC61694eAD0dC8DB51f7");
+
+const pangolinRouter = web3.utils.toChecksumAddress("0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106");
 
 const vaultParams = {
-  mooName: "Moo Balancer Avax AF Culture Coins",
-  mooSymbol: "mooBalancerAvaxAFCultureCoins",
+  mooName: "Moo Balancer Avax sAVAX-WAVAX",
+  mooSymbol: "mooBalancerAvaxsAVAX-WAVAX",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
-  inputIsComposable: false,
+  inputIsComposable: true,
   balSwapOn: true,
-  nativeToInputRoute: [["0x0df1be54b29aa9828bea1de6a6dfe3d03ec63082000100000000000000000047", 0, 0]],
+  nativeToInputRoute: [["0xfd2620c9cfcec7d152467633b3b0ca338d3d78cc00000000000000000000001c", 0, 1]],
   outputToNativeRoute: [["0xa39d8651689c8b6e5a9e0aa4362629aef2c58f55000200000000000000000038", 0, 1]],
-  nativeToInputAssets: [AVAX],
+  nativeToInputAssets: [AVAX, want],
   outputToNativeAssets: [BAL, AVAX],
   rewardsGauge: gauge,
   unirouter: balancer.router,
@@ -45,6 +49,9 @@ const strategyParams = {
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
   strategyImplementation: "0x8eA4805A0652FF9Bc06311cB98c7178873B4b13C",
+  secondExtraReward: true,
+  secondRewardAssets: [aQI, AVAX],
+  secondRewardRoute: [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
 };
 
 async function main() {
@@ -121,6 +128,24 @@ async function main() {
   stratInitTx.status === 1
     ? console.log(`Strat Intilization done with tx: ${stratInitTx.transactionHash}`)
     : console.log(`Strat Intilization failed with tx: ${stratInitTx.transactionHash}`);
+
+
+  if (strategyParams.secondExtraReward) {
+    stratInitTx = await stratContract.addRewardToken(
+      strategyParams.secondRewardAssets[0],
+      pangolinRouter,
+      RouterType.UNISWAP_V2, // Use the enum value directly as a BigNumber
+      strategyParams.secondRewardRoute,
+      strategyParams.secondRewardAssets,
+      [aQi, AVAX],
+      [],
+      0
+    );
+    stratInitTx = await stratInitTx.wait();
+    stratInitTx.status === 1
+      ? console.log(`QI Reward Added with tx: ${stratInitTx.transactionHash}`)
+      : console.log(`QI Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
+  }
 }
 
 main()
