@@ -9,24 +9,22 @@ const {
   tokens: {
     MATIC: { address: MATIC },
     newQUICK: { address: newQUICK },
-    ETH: { address: ETH },
-    WBTC: { address: WBTC },
   },
 } = addressBook.polygon;
 
-const want = web3.utils.toChecksumAddress("0xadc7B4096C3059Ec578585Df36E6E1286d345367");
+const want = web3.utils.toChecksumAddress("0x7f09bD2801A7b795dF29C273C4afbB0Ff15E2D63");
 
 const vaultParams = {
-  mooName: "Moo Quick Dummy WBTC-WETH",
-  mooSymbol: "mooQuickDummyWBTC-WETH",
+  mooName: "Moo Quick Dummy WMATIC-QUICK",
+  mooSymbol: "mooQuickDummyWMATIC-QUICK",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   outputToNativePath: ethers.utils.solidityPack(["address", "address"], [newQUICK, MATIC]),
-  nativeToLp0Path: ethers.utils.solidityPack(["address", "address", "address"], [MATIC, ETH, WBTC]),
-  nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [MATIC, ETH]),
+  nativeToLp0Path: "0x",
+  nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [MATIC, newQUICK]),
   unirouter: web3.utils.toChecksumAddress("0xf5b509bB0909a69B1c207E495f687a596C168E12"),
   strategist: process.env.STRATEGIST_ADDRESS, // some address
   keeper: beefyfinance.keeper,
