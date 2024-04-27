@@ -39,6 +39,7 @@
     "deploy:curve": "hardhat run scripts/vault/deploy-curve-strat.ts --network",
     "deploy:rewardPool": "hardhat run scripts/vault/deploy-generic-rewardPool-strat.ts --network",
     "deploy:velo": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network optimism",
+    "deploy:aero": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network base",
     "deploy": "hardhat run scripts/vault/deploy-gamma-strat.js --network polygon",
     "merkl": "hardhat run scripts/vault/merkl.js --network polygon",
     "send": "hardhat run scripts/vault/send.js --network polygon",

@@ -5,46 +5,46 @@ import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Fa
 import stratAbi from "../../artifacts/contracts/BIFI/strategies/Velodrome/StrategyVelodromeGaugeV2.sol/StrategyVelodromeGaugeV2.json";
 
 const {
-  platforms: { aerodrome, beefyfinance },
+  platforms: { velodrome, beefyfinance },
   tokens: {
-    AERO: { address: AERO },
+    VELOV2: { address: VELOV2 },
     ETH: { address: ETH },
   },
-} = addressBook.base;
+} = addressBook.optimism;
 
 const zero = ethers.constants.AddressZero;
 
-const wrsETH = web3.utils.toChecksumAddress("0xEDfa23602D0EC14714057867A78d01e94176BEA0");
+const wrsETH = web3.utils.toChecksumAddress("0x87eEE96D50Fb761AD85B1c982d28A042169d61b1");
 
-const want = web3.utils.toChecksumAddress("0xA24382874A6FD59de45BbccFa160488647514c28");
-const gauge = web3.utils.toChecksumAddress("0x2da7789a6371F550caF9054694F5A5A6682903f9");
+const want = web3.utils.toChecksumAddress("0xE48b4E392E4FC29aC2600c3C8EFe0404A15D60D9");
+const gauge = web3.utils.toChecksumAddress("0x0B5F85eD904A06EfDB893510CcA20481A5de4965");
 
 const vaultParams = {
-  mooName: "Moo Aero WETH-wrsETH",
-  mooSymbol: "mooAeroWETH-wrsETH",
+  mooName: "Moo VeloV2 WETH-wrsETH",
+  mooSymbol: "mooVeloV2WETH-wrsETH",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   gauge: gauge,
-  unirouter: aerodrome.router,
+  unirouter: velodrome.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [
-    [AERO, ETH, false, zero],
+    [VELOV2, ETH, false, zero],
   ],
   outputToLp0Route: [
-    [AERO, ETH, false, zero],
+    [VELOV2, ETH, false, zero],
   ],
   outputToLp1Route: [
-    [AERO, ETH, false, zero],
+    [VELOV2, ETH, false, zero],
     [ETH, wrsETH, false, zero],
   ],
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x13aD51a6664973EbD0749a7c84939d973F247921",
+  strategyImplementation: "0x83ff748c4dad196944ded62c998ddc87a57a4198",
 };
 
 async function main() {
