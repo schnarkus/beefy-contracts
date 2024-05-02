@@ -2,49 +2,47 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Velodrome/StrategyVelodromeGaugeV2.sol/StrategyVelodromeGaugeV2.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Common/StrategyCommonSolidlyGaugeMultiRewardLP.sol/StrategyCommonSolidlyGaugeMultiRewardLP.json";
 
 const {
-  platforms: { aerodrome, beefyfinance },
+  platforms: { beefyfinance },
   tokens: {
-    AERO: { address: AERO },
     ETH: { address: ETH },
+    ezETH: { address: ezETH },
   },
-} = addressBook.base;
+} = addressBook.linea;
 
-const zero = ethers.constants.AddressZero;
+const NILE = web3.utils.toChecksumAddress("0xAAAac83751090C6ea42379626435f805DDF54DC8");
+const router = web3.utils.toChecksumAddress("0xAAA45c8F5ef92a000a121d102F4e89278a711Faa");
 
-const wrsETH = web3.utils.toChecksumAddress("0xEDfa23602D0EC14714057867A78d01e94176BEA0");
-
-const want = web3.utils.toChecksumAddress("0xA24382874A6FD59de45BbccFa160488647514c28");
-const gauge = web3.utils.toChecksumAddress("0x2da7789a6371F550caF9054694F5A5A6682903f9");
+const want = web3.utils.toChecksumAddress("0xA9A1Fb9F6664A0B6BFB1F52724fd7b23842248C5");
+const gauge = web3.utils.toChecksumAddress("0x01FB6B2FA528fE9fC5fF3aB092203953AA8a32Ff");
 
 const vaultParams = {
-  mooName: "Moo Aero WETH-wrsETH",
-  mooSymbol: "mooAeroWETH-wrsETH",
+  mooName: "Moo Nile ezETH-WETH",
+  mooSymbol: "mooNileezETH-WETH",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   gauge: gauge,
-  unirouter: aerodrome.router,
+  unirouter: router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   outputToNativeRoute: [
-    [AERO, ETH, false, zero],
+    [NILE, ETH, false],
   ],
-  outputToLp0Route: [
-    [AERO, ETH, false, zero],
+  nativeToLp0Route: [
+    [ETH, ezETH, true],
   ],
-  outputToLp1Route: [
-    [AERO, ETH, false, zero],
-    [ETH, wrsETH, false, zero],
+  nativeToLp1Route: [
+    [ETH, ETH, false],
   ],
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x13aD51a6664973EbD0749a7c84939d973F247921",
+  strategyImplementation: "0xb451E7C51a41be2f29DD68FF70f178B93af38197",
 };
 
 async function main() {
@@ -102,8 +100,8 @@ async function main() {
       strategyParams.feeConfig,
     ],
     strategyParams.outputToNativeRoute,
-    strategyParams.outputToLp0Route,
-    strategyParams.outputToLp1Route,
+    strategyParams.nativeToLp0Route,
+    strategyParams.nativeToLp1Route,
   ];
 
   let abi = stratAbi.abi;

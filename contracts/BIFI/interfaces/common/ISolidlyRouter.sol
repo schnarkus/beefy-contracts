@@ -4,7 +4,6 @@ pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 interface ISolidlyRouter {
-
     // Routes
     struct Routes {
         address from;
@@ -72,7 +71,7 @@ interface ISolidlyRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-     function swapExactTokensForTokens(
+    function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
         Routes[] memory route,
@@ -80,7 +79,7 @@ interface ISolidlyRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-     function swapExactTokensForTokens(
+    function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
         Route[] memory route,
@@ -88,11 +87,16 @@ interface ISolidlyRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-    function getAmountOut(uint amountIn, address tokenIn, address tokenOut) external view returns (uint amount, bool stable);
+    function getAmountOut(
+        uint amountIn,
+        address tokenIn,
+        address tokenOut
+    ) external view returns (uint amount, bool stable);
 
     function getAmountsOut(uint amountIn, Routes[] memory routes) external view returns (uint[] memory amounts);
+
     function getAmountsOut(uint amountIn, Route[] memory routes) external view returns (uint[] memory amounts);
-   
+
     function quoteAddLiquidity(
         address tokenA,
         address tokenB,

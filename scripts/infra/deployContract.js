@@ -1,6 +1,6 @@
 const hardhat = require("hardhat");
 
-const contractName = "StrategyQuickGamma";
+const contractName = "StrategyCommonSolidlyGaugeMultiRewardLP";
 
 async function main() {
   await hardhat.run("compile");

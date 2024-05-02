@@ -173,8 +173,17 @@ const config: DeploymentConfig = {
       optimisticEthereum: process.env.OPTIMISM_API_KEY!,
       base: process.env.BASE_API_KEY!,
       avalanche: process.env.AVAX_API_KEY!,
+      linea_mainnet: process.env.LINEA_API_KEY!,
     },
     customChains: [
+      {
+        network: "linea_mainnet",
+        chainId: 59144,
+        urls: {
+          apiURL: "https://api.lineascan.build/api",
+          browserURL: "https://lineascan.build/",
+        },
+      },
       {
         network: "metis",
         chainId: 1088,
