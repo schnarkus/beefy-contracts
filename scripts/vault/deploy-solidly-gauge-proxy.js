@@ -42,7 +42,7 @@ const strategyParams = {
     [ETH, ETH, false],
   ],
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xb451E7C51a41be2f29DD68FF70f178B93af38197",
+  strategyImplementation: "0xBe63A1958dB92D66aB63471e949d059E6A2e47D6",
 };
 
 async function main() {

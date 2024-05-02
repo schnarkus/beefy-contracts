@@ -212,6 +212,7 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
         uint256 lp0Amt = nativeBal / 2;
         uint256 lp1Amt = nativeBal - lp0Amt;
+
         if (stable) {
             uint256 lp0Decimals = 10 ** IERC20Extended(lpToken0).decimals();
             uint256 lp1Decimals = 10 ** IERC20Extended(lpToken1).decimals();
@@ -232,7 +233,7 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
             );
             amountA = (amountA * 1e18) / lp0Decimals;
             amountB = (amountB * 1e18) / lp1Decimals;
-            uint256 ratio = ((out0 * 1e18) / out1) * (amountB / amountA);
+            uint256 ratio = (((out0 * 1e18) / out1) * amountB) / amountA;
             lp0Amt = (nativeBal * 1e18) / (ratio + 1e18);
             lp1Amt = nativeBal - lp0Amt;
         }
