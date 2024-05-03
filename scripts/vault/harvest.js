@@ -1,7 +1,7 @@
 const hardhat = require("hardhat");
 
 const config = {
-    targetAddress: "0xc1ecAD1D0Db5A997478f22492FAa2A209DD4F461",
+    targetAddress: "0x20Eff9D9531CF43Fd4d100B26106AC62B146Ec3A",
     abi: [
         {
             "inputs": [],

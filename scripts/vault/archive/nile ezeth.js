@@ -8,28 +8,25 @@ const {
   platforms: { beefyfinance },
   tokens: {
     ETH: { address: ETH },
-    USDC: { address: USDC },
+    ezETH: { address: ezETH },
   },
 } = addressBook.linea;
 
 const NILE = web3.utils.toChecksumAddress("0xAAAac83751090C6ea42379626435f805DDF54DC8");
-const LUSD = web3.utils.toChecksumAddress("0x63bA74893621d3d12F13CEc1e86517eC3d329837");
 const router = web3.utils.toChecksumAddress("0xAAA45c8F5ef92a000a121d102F4e89278a711Faa");
 
-const want = web3.utils.toChecksumAddress("0x641d5eAa27e516E1CF1F5C84B5EC25C45b7e3f0D");
-const gauge = web3.utils.toChecksumAddress("0xA939c7bf57FccaC34d60938412aF6CA2CA246ca0");
+const want = web3.utils.toChecksumAddress("0xA9A1Fb9F6664A0B6BFB1F52724fd7b23842248C5");
+const gauge = web3.utils.toChecksumAddress("0x01FB6B2FA528fE9fC5fF3aB092203953AA8a32Ff");
 
 const vaultParams = {
-  mooName: "Moo Nile USDC-LUSD",
-  mooSymbol: "mooNileUSDC-LUSD",
+  mooName: "Moo Nile ezETH-WETH",
+  mooSymbol: "mooNileezETH-WETH",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   gauge: gauge,
-  useNative: false,
-  routeToUSDC: ethers.utils.solidityPack(["address", "uint24", "address"], [ETH, 250, USDC]),
   unirouter: router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
@@ -39,13 +36,13 @@ const strategyParams = {
     [NILE, ETH, false],
   ],
   nativeToLp0Route: [
-    [USDC, USDC, false],
+    [ETH, ezETH, true],
   ],
   nativeToLp1Route: [
-    [USDC, LUSD, true],
+    [ETH, ETH, false],
   ],
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xC41aC910e6773C6E06D41D3b4246aDf979590FE0",
+  strategyImplementation: "0xBe63A1958dB92D66aB63471e949d059E6A2e47D6",
 };
 
 async function main() {
@@ -94,8 +91,6 @@ async function main() {
   const strategyConstructorArguments = [
     strategyParams.want,
     strategyParams.gauge,
-    strategyParams.useNative,
-    strategyParams.routeToUSDC,
     [
       vault,
       strategyParams.unirouter,

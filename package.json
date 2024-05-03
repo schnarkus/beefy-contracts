@@ -71,7 +71,7 @@
     "fork:bsc": "hardhat node --fork bsc",
     "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
     "verify": "hardhat run scripts/vault/verify.js --network linea",
-    "harvest": "hardhat run scripts/vault/harvest.js --network polygon",
+    "harvest": "hardhat run scripts/vault/harvest.js --network linea",
     "gauge": "hardhat run scripts/vault/extraGauge.js --network base",
     "token": "hardhat run scripts/vault/rewardTokens.js --network base"
   },

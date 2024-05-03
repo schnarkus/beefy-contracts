@@ -17,6 +17,7 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
     // Tokens used
     address public native;
     address public output;
+    address public usdc;
     address public want;
     address public lpToken0;
     address public lpToken1;
@@ -26,9 +27,11 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
     address public uniV3Router;
 
     bool public stable;
+    bool public useNative;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
 
+    bytes public routeToUSDC;
     ISolidlyRouter.Routes[] public outputToNativeRoute;
     ISolidlyRouter.Routes[] public nativeToLp0Route;
     ISolidlyRouter.Routes[] public nativeToLp1Route;
@@ -50,6 +53,8 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
     function initialize(
         address _want,
         address _gauge,
+        bool _useNative,
+        bytes calldata _routeToUSDC,
         CommonAddresses calldata _commonAddresses,
         ISolidlyRouter.Routes[] calldata _outputToNativeRoute,
         ISolidlyRouter.Routes[] calldata _nativeToLp0Route,
@@ -59,6 +64,9 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
         want = _want;
         gauge = _gauge;
         uniV3Router = address(0xAAAE99091Fbb28D400029052821653C1C752483B);
+        useNative = _useNative;
+        routeToUSDC = _routeToUSDC;
+        usdc = address(0x176211869cA2b568f2A7D4EE941E073a821EE1ff);
 
         stable = ISolidlyPair(want).stable();
 
@@ -210,20 +218,32 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
     // Adds liquidity to AMM and gets more LP tokens.
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
+        if (!useNative) {
+            UniV3Actions.swapV3WithDeadline(uniV3Router, routeToUSDC, nativeBal);
+            nativeBal = IERC20(usdc).balanceOf(address(this));
+        }
+
         uint256 lp0Amt = nativeBal / 2;
         uint256 lp1Amt = nativeBal - lp0Amt;
+
+        address swapToken = useNative ? native : usdc;
 
         if (stable) {
             uint256 lp0Decimals = 10 ** IERC20Extended(lpToken0).decimals();
             uint256 lp1Decimals = 10 ** IERC20Extended(lpToken1).decimals();
-            uint256 out0 = lpToken0 != native
-                ? (ISolidlyRouter(unirouter).getAmountsOut(lp0Amt, nativeToLp0Route)[nativeToLp0Route.length] * 1e18) /
-                    lp0Decimals
-                : lp0Amt;
-            uint256 out1 = lpToken1 != native
-                ? (ISolidlyRouter(unirouter).getAmountsOut(lp1Amt, nativeToLp1Route)[nativeToLp1Route.length] * 1e18) /
-                    lp1Decimals
-                : lp1Amt;
+            uint256 out0;
+            uint256 out1;
+            if (lpToken0 != swapToken) {
+                out0 = ISolidlyRouter(unirouter).getAmountsOut(lp0Amt, nativeToLp0Route)[nativeToLp0Route.length];
+            } else out0 = lp0Amt;
+
+            if (lpToken1 != swapToken) {
+                out1 = ISolidlyRouter(unirouter).getAmountsOut(lp1Amt, nativeToLp1Route)[nativeToLp1Route.length];
+            } else out1 = lp1Amt;
+
+            out0 = (out0 * 1e18) / lp0Decimals;
+            out1 = (out1 * 1e18) / lp1Decimals;
+
             (uint256 amountA, uint256 amountB, ) = ISolidlyRouter(unirouter).quoteAddLiquidity(
                 lpToken0,
                 lpToken1,
@@ -238,7 +258,7 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
             lp1Amt = nativeBal - lp0Amt;
         }
 
-        if (lpToken0 != native) {
+        if (lpToken0 != swapToken) {
             ISolidlyRouter(unirouter).swapExactTokensForTokens(
                 lp0Amt,
                 0,
@@ -248,7 +268,7 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
             );
         }
 
-        if (lpToken1 != native) {
+        if (lpToken1 != swapToken) {
             ISolidlyRouter(unirouter).swapExactTokensForTokens(
                 lp1Amt,
                 0,
@@ -393,6 +413,12 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
         IERC20(native).safeApprove(unirouter, 0);
         IERC20(native).safeApprove(unirouter, type(uint).max);
 
+        IERC20(native).safeApprove(uniV3Router, 0);
+        IERC20(native).safeApprove(uniV3Router, type(uint).max);
+
+        IERC20(usdc).safeApprove(unirouter, 0);
+        IERC20(usdc).safeApprove(unirouter, type(uint).max);
+
         IERC20(lpToken0).safeApprove(unirouter, 0);
         IERC20(lpToken0).safeApprove(unirouter, type(uint).max);
 
@@ -409,6 +435,8 @@ contract StrategyCommonSolidlyGaugeMultiRewardLP is StratFeeManagerInitializable
         }
 
         IERC20(native).safeApprove(unirouter, 0);
+        IERC20(native).safeApprove(uniV3Router, 0);
+        IERC20(usdc).safeApprove(unirouter, 0);
         IERC20(lpToken0).safeApprove(unirouter, 0);
         IERC20(lpToken1).safeApprove(unirouter, 0);
     }
