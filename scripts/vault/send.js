@@ -1,14 +1,13 @@
 const { ethers } = require('hardhat');
 
 const tokenAddresses = [
-    '0x14e845491fB2dad506DD628d49741F28dc601e14',
-    '0x479C32cbf558bB1a54e6C5e6e874a67d0F2DDdca',
-    '0xEF8909ceD1fFA213e56B783C1a1A463dD1FF8048',
-    '0x6Ed9f18397ACd914CBCde1323F0Dd696E0ac79B7',
-    '0x09D8CAb9DE699De01E47FCDaB50364F455dC712b'
+    '0x94fcACbE393cf84e94638dc9616Ee84Ff0031806',
+    '0x82090669f82cfb6F6C84122CA6818Afa616d980F',
+    '0x89D0A19e73416dCE724A9a4C73F27A6736F25858',
+    '0xe43c65ACd8ed1e7a8e0DFEe5888F081Ee36D7aCB',
 ];
 
-const recipient = '0x6fd13191539e0e13B381e1a3770F28D96705ce91';
+const recipient = '0x65CF7E8C0d431f59787D07Fa1A9f8725bbC33F7E';
 
 async function main() {
     const [deployer] = await ethers.getSigners();

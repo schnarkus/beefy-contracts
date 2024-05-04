@@ -10,17 +10,16 @@ const {
     BNB: { address: BNB },
     THE: { address: THE },
     ETH: { address: ETH },
+    USDT: { address: USDT },
   },
 } = addressBook.bsc;
 
-const weETH = web3.utils.toChecksumAddress("0x04C0599Ae5A44757c0af6F9eC3b93da8976c150A");
-
-const want = web3.utils.toChecksumAddress("0xc2c05763Ea35c4db63C49631206F07215d6d0D39");
-const rewardPool = web3.utils.toChecksumAddress("0x98C6F030F1B58edD1037b32348307E4667559a40");
+const want = web3.utils.toChecksumAddress("0x01DD2d28eeB95D740acb5344b1e2C99b61CC3e64");
+const rewardPool = web3.utils.toChecksumAddress("0x8A07590FfC632cB258Fe627B25D304CC7Cc3998B");
 
 const vaultParams = {
-  mooName: "Moo Thena Gamma weETH-ETH Narrow",
-  mooSymbol: "mooThenaGammaweETH-ETHNarrow",
+  mooName: "Moo Thena Gamma ETH-USDT Narrow",
+  mooSymbol: "mooThenaGammaETH-USDTNarrow",
   delay: 21600,
 };
 
@@ -28,8 +27,8 @@ const strategyParams = {
   want: want,
   rewardPool: rewardPool,
   outputToNativePath: ethers.utils.solidityPack(["address", "address"], [THE, BNB]),
-  nativeToLp0Path: ethers.utils.solidityPack(["address", "address", "address"], [BNB, ETH, weETH]),
-  nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [BNB, ETH]),
+  nativeToLp0Path: ethers.utils.solidityPack(["address", "address"], [BNB, ETH]),
+  nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [BNB, USDT]),
   unirouter: web3.utils.toChecksumAddress("0x327Dd3208f0bCF590A66110aCB6e5e6941A4EfA0"),
   strategist: process.env.STRATEGIST_ADDRESS, // some address
   keeper: beefyfinance.keeper,
