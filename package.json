@@ -45,7 +45,7 @@
     "send": "hardhat run scripts/vault/send.js --network bsc",
     "chef": "hardhat run scripts/vault/deploy-generic-chef-strat.js --network fantom",
     "pools": "hardhat run scripts/vault/pidQS.js --network polygon",
-    "deploy:gamma": "hardhat run scripts/vault/deploy-gamma-strat.js --network bsc",
+    "deploy:gamma": "hardhat run scripts/vault/deploy-gamma-strat.js --network polygon",
     "deploy:lend": "hardhat run scripts/vault/deploy-strat-lend.ts --network",
     "deploy:kyber": "hardhat run scripts/vault/deploy-kyber-strat.ts --network",
     "deploy:beToken": "hardhat run scripts/vault/deployBeToken.js --network",

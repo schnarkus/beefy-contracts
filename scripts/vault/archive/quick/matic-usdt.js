@@ -9,23 +9,22 @@ const {
   tokens: {
     newQUICK: { address: newQUICK },
     MATIC: { address: MATIC },
-    USDC: { address: USDC },
     USDT: { address: USDT },
   },
 } = addressBook.polygon;
 
-const want = web3.utils.toChecksumAddress("0x953e523eA34E85AC55D40Be1Ff71D52aa62497b7");
+const want = web3.utils.toChecksumAddress("0x598cA33b7F5FAB560ddC8E76D94A4b4AA52566d7");
 
 const vaultParams = {
-  mooName: "Moo Quick USDC-USDT Stable",
-  mooSymbol: "mooQuickUSDC-USDTStable",
+  mooName: "Moo Quick WMATIC-USDT Narrow",
+  mooSymbol: "mooQuickWMATIC-USDTNarrow",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   outputToNativePath: ethers.utils.solidityPack(["address", "address"], [newQUICK, MATIC]),
-  nativeToLp0Path: ethers.utils.solidityPack(["address", "address"], [MATIC, USDC]),
+  nativeToLp0Path: "0x",
   nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [MATIC, USDT]),
   unirouter: web3.utils.toChecksumAddress("0xf5b509bB0909a69B1c207E495f687a596C168E12"),
   strategist: process.env.STRATEGIST_ADDRESS, // some address
