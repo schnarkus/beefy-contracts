@@ -42,7 +42,7 @@
     "deploy:aero": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network base",
     "deploy": "hardhat run scripts/vault/deploy-solidly-gauge-proxy.js --network linea",
     "merkl": "hardhat run scripts/vault/merkl.js --network polygon",
-    "send": "hardhat run scripts/vault/send.js --network bsc",
+    "send": "hardhat run scripts/vault/send.js --network polygon",
     "chef": "hardhat run scripts/vault/deploy-generic-chef-strat.js --network fantom",
     "pools": "hardhat run scripts/vault/pidQS.js --network polygon",
     "deploy:gamma": "hardhat run scripts/vault/deploy-gamma-strat.js --network polygon",
