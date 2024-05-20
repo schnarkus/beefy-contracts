@@ -50,10 +50,10 @@ const config: DeploymentConfig = {
       accounts,
     },
     polygon: {
-      url: process.env.POLYGON_RPC || "https://endpoints.omniatech.io/v1/matic/mainnet/public",
+      url: process.env.POLYGON_RPC || "https://polygon.meowrpc.com",
       chainId: 137,
       accounts,
-      gasPrice: 50000000000, // 50 Gwei
+      gasPrice: 100000000000, // 100 Gwei
     },
     fantom: {
       url: process.env.FANTOM_RPC || "https://rpc.ftm.tools",

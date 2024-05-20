@@ -10,7 +10,7 @@ const config = {
     abi: [
         {
             "inputs": [],
-            "name": "harvest",
+            "name": "unpause",
             "outputs": [],
             "stateMutability": "nonpayable",
             "type": "function"
@@ -24,13 +24,13 @@ async function main() {
     for (const address of config.targetAddresses) {
         try {
             const contract = await ethers.getContractAt(config.abi, address);
-            const tx = await contract.harvest();
+            const tx = await contract.unpause();
 
-            console.log(`Harvest transaction sent to ${address}. Waiting for confirmation...`);
+            console.log(`Unpause transaction sent to ${address}. Waiting for confirmation...`);
             await tx.wait();
-            console.log(`Harvest transaction confirmed for ${address}!`);
+            console.log(`Unpause transaction confirmed for ${address}!`);
         } catch (error) {
-            console.error(`Error processing address ${address}:`);
+            console.error(`Error processing address ${address}: ${error.message}`);
         }
     }
 }

@@ -3,10 +3,10 @@ const { ethers } = require('hardhat');
 const tokenAddress = '0x958d208Cdf087843e9AD98d23823d32E17d723A1';
 
 const recipients = [
-    '0xa9B0eA1938116C46C37EcD5D7a58a43d8D263DBe',
-    '0xcA1ff0cd9c244198bEDE277F56CE6EAF47ADfd66',
-    '0x678073E286Dff0d8EfBC54581EdB56576356dE31',
-    '0x72a50FD092C78804fA53F7f8f235a66e5A7c930a',
+    '0xf68A6697831FBA78f25CdFb1394b858fEd6F3659',
+    '0x14bcD2bC6e516fa296636a55d1cc24fa89Cbc5B1',
+    '0x63E495D7e87CF451d986D6E03015cD78b0CaEeda',
+    '0xD4a88FDBdd57c465E125c0021b40f58eb86aA13E',
 ];
 
 async function main() {
@@ -40,7 +40,7 @@ async function main() {
             "stateMutability": "nonpayable",
             "type": "function"
         }
-    ]
+    ];
 
     // Connect to the deployed token contract using the ABI and address
     const token = new ethers.Contract(tokenAddress, abi, deployer);
@@ -51,7 +51,9 @@ async function main() {
     for (let i = 0; i < recipients.length; i++) {
         console.log(`Sending tokens to ${recipients[i]}`);
         try {
-            await token.transfer(recipients[i], amountToSend);
+            const tx = await token.transfer(recipients[i], amountToSend);
+            console.log(`Transfer transaction sent to ${recipients[i]}. Waiting for confirmation...`);
+            await tx.wait();
             console.log(`Tokens sent to ${recipients[i]}`);
         } catch (error) {
             console.error(`Failed to send tokens to ${recipients[i]}:`, error);
