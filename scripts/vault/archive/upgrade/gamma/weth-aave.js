@@ -9,23 +9,24 @@ const {
   tokens: {
     newQUICK: { address: newQUICK },
     MATIC: { address: MATIC },
-    pUSDCe: { address: pUSDCe },
+    AAVE: { address: AAVE },
+    ETH: { address: ETH },
   },
 } = addressBook.polygon;
 
-const want = web3.utils.toChecksumAddress("0x04d521E2c414E6d898c6F2599FdD863Edf49e247");
+const want = web3.utils.toChecksumAddress("0x5bA383530Db75A22E028239dbc777C7Ee8CE4752");
 
 const vaultParams = {
-  mooName: "Moo Quick Dummy WMATIC-USDC.e",
-  mooSymbol: "mooQuickDummy WMATIC-USDC.e",
+  mooName: "Moo Quick Dummy WETH-AAVE",
+  mooSymbol: "mooQuickDummy WETH-AAVE",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   outputToNativePath: ethers.utils.solidityPack(["address", "address"], [newQUICK, MATIC]),
-  nativeToLp0Path: "0x",
-  nativeToLp1Path: ethers.utils.solidityPack(["address", "address"], [MATIC, pUSDCe]),
+  nativeToLp0Path: ethers.utils.solidityPack(["address", "address"], [MATIC, ETH]),
+  nativeToLp1Path: ethers.utils.solidityPack(["address", "address", "address"], [MATIC, ETH, AAVE]),
   unirouter: web3.utils.toChecksumAddress("0xf5b509bB0909a69B1c207E495f687a596C168E12"),
   strategist: process.env.STRATEGIST_ADDRESS, // some address
   keeper: beefyfinance.keeper,
