@@ -1,0 +1,5 @@
+quick-gamma-fxcbeth-weth
+quick-gamma-usdc-axlusdc-narrow
+quick-gamma-usdc-usdt-narrow
+quick-gamma-wmatic-stmatic-narrow
+quick-gamma-wmatic-maticx-narrow
