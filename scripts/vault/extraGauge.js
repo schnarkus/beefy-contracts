@@ -39,7 +39,7 @@ const abi = [
 
 
 // Contract address where the contract is deployed
-const contractAddress = '0x331a1213953e324955b2a121079d8ffd08eae9fd'; // Update with the actual contract address
+const contractAddress = '0x26E72914767ba0bb27350Fa485A3698475072BBa'; // Update with the actual contract address
 
 async function main() {
     const [signer] = await ethers.getSigners();

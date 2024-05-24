@@ -77,7 +77,8 @@
     "send": "hardhat run scripts/vault/send.js --network polygon",
     "gauge": "hardhat run scripts/vault/extraGauge.js --network base",
     "token": "hardhat run scripts/vault/rewardTokens.js --network base",
-    "vaults": "hardhat run scripts/vault/vaults.js"
+    "vaults": "hardhat run scripts/vault/vaults.js",
+    "lsapr": "hardhat run scripts/vault/lsapr.js"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",
