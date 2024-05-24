@@ -33,7 +33,7 @@
     "test:harvester": "hardhat test --network localhost test/infra/BeefyAutoHarvester.test.ts",
     "deploy:cake": "hardhat run scripts/vault/deploy-ichi-strat.js --network bsc",
     "deploy:chef": "hardhat run scripts/vault/deploy-generic-chef-strat.ts --network",
-    "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.js --network avax",
+    "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.js --network base",
     "deploy:aura": "hardhat run scripts/vault/deploy-balancer-strat-eth.ts --network",
     "deploy:bifiMaxi": "hardhat run scripts/vault/deploy-bifi-maxi.js --network",
     "deploy:curve": "hardhat run scripts/vault/deploy-curve-strat.ts --network",
