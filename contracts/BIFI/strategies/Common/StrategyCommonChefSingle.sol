@@ -2,24 +2,23 @@
 
 pragma solidity ^0.8.0;
 
-
 import "@openzeppelin-4/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/common/IUniswapRouterETH.sol";
-import "../../interfaces/common/IUniswapV2Pair.sol";
-import "../../interfaces/common/IMasterChef.sol";
-import "../Common/StratFeeManager.sol";
+import "../../interfaces/aavegotchi/IUniswapRouter.sol";
+import "../../interfaces/aavegotchi/IMasterChef.sol";
+import "../../interfaces/aavegotchi/IWrappedAToken.sol";
+import "../Common/StratFeeManagerInitializable.sol";
 import "../../utils/StringUtils.sol";
 import "../../utils/GasFeeThrottler.sol";
 
-
-contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
+contract StrategyCommonChefSingle is StratFeeManagerInitializable, GasFeeThrottler {
     using SafeERC20 for IERC20;
 
     // Tokens used
     address public native;
     address public output;
+    address public ghst;
     address public want;
 
     // Third party contracts
@@ -32,32 +31,31 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
 
     // Routes
     address[] public outputToNativeRoute;
-    address[] public outputToWantRoute;
+    address[] public outputToGHSTRoute;
 
     event StratHarvest(address indexed harvester, uint256 wantHarvested, uint256 tvl);
     event Deposit(uint256 tvl);
     event Withdraw(uint256 tvl);
     event ChargedFees(uint256 callFees, uint256 beefyFees, uint256 strategistFees);
 
-    constructor(
-        address _want,
-        uint256 _poolId,
-        address _chef,
-        CommonAddresses memory _commonAddresses,
+    function initialize(
         address[] memory _outputToNativeRoute,
-        address[] memory _outputToWantRoute
-    ) StratFeeManager(_commonAddresses) {
-        want = _want;
-        poolId = _poolId;
-        chef = _chef;
+        address[] memory _outputToGHSTRoute,
+        CommonAddresses calldata _commonAddresses
+    ) public initializer {
+        __StratFeeManager_init(_commonAddresses);
+        ghst = 0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7;
+        want = 0x73958d46B7aA2bc94926d8a215Fa560A5CdCA3eA; // wapGHST
+        poolId = 0;
+        chef = 0x1fE64677Ab1397e20A1211AFae2758570fEa1B8c;
 
         output = _outputToNativeRoute[0];
         native = _outputToNativeRoute[_outputToNativeRoute.length - 1];
         outputToNativeRoute = _outputToNativeRoute;
 
-        require(_outputToWantRoute[0] == output, "outputToWantRoute[0] != output");
-        require(_outputToWantRoute[_outputToWantRoute.length - 1] == want, "!want");
-        outputToWantRoute = _outputToWantRoute;
+        require(_outputToGHSTRoute[0] == output, "outputToGHSTRoute[0] != output");
+        require(_outputToGHSTRoute[_outputToGHSTRoute.length - 1] == ghst, "!ghst");
+        outputToGHSTRoute = _outputToGHSTRoute;
 
         _giveAllowances();
     }
@@ -87,7 +85,7 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
         }
 
         if (tx.origin != owner() && !paused()) {
-            uint256 withdrawalFeeAmount = wantBal * withdrawalFee / WITHDRAWAL_MAX;
+            uint256 withdrawalFeeAmount = (wantBal * withdrawalFee) / WITHDRAWAL_MAX;
             wantBal = wantBal - withdrawalFeeAmount;
         }
 
@@ -96,18 +94,18 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
         emit Withdraw(balanceOf());
     }
 
-    function beforeDeposit() external override {
+    function beforeDeposit() external virtual override {
         if (harvestOnDeposit) {
             require(msg.sender == vault, "!vault");
             _harvest(tx.origin);
         }
     }
 
-    function harvest() external gasThrottle virtual {
+    function harvest() external virtual gasThrottle {
         _harvest(tx.origin);
     }
 
-    function harvest(address callFeeRecipient) external gasThrottle virtual {
+    function harvest(address callFeeRecipient) external virtual gasThrottle {
         _harvest(callFeeRecipient);
     }
 
@@ -122,6 +120,7 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
         if (outputBal > 0) {
             chargeFees(callFeeRecipient);
             swapRewards();
+            wrapGHST();
             uint256 wantHarvested = balanceOfWant();
             deposit();
 
@@ -133,28 +132,48 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
         IFeeConfig.FeeCategory memory fees = getFees();
-        uint256 toNative = IERC20(output).balanceOf(address(this)) * fees.total / DIVISOR;
-        IUniswapRouterETH(unirouter).swapExactTokensForTokens(toNative, 0, outputToNativeRoute, address(this), block.timestamp);
+        uint256 toNative = (IERC20(output).balanceOf(address(this)) * fees.total) / DIVISOR;
+        IUniswapRouter(unirouter).swapExactTokensForTokens(
+            toNative,
+            0,
+            outputToNativeRoute,
+            address(this),
+            block.timestamp
+        );
 
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
 
-        uint256 callFeeAmount = nativeBal * fees.call / DIVISOR;
+        uint256 callFeeAmount = (nativeBal * fees.call) / DIVISOR;
         IERC20(native).safeTransfer(callFeeRecipient, callFeeAmount);
 
-        uint256 beefyFeeAmount = nativeBal * fees.beefy / DIVISOR;
+        uint256 beefyFeeAmount = (nativeBal * fees.beefy) / DIVISOR;
         IERC20(native).safeTransfer(beefyFeeRecipient, beefyFeeAmount);
 
-        uint256 strategistFeeAmount = nativeBal * fees.strategist / DIVISOR;
+        uint256 strategistFeeAmount = (nativeBal * fees.strategist) / DIVISOR;
         IERC20(native).safeTransfer(strategist, strategistFeeAmount);
 
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
     }
 
-    // swap rewards to {want}
+    // swap rewards to GHST
     function swapRewards() internal {
-        if (want != output) {
+        if (ghst != output) {
             uint256 outputBal = IERC20(output).balanceOf(address(this));
-            IUniswapRouterETH(unirouter).swapExactTokensForTokens(outputBal, 0, outputToWantRoute, address(this), block.timestamp);
+            IUniswapRouter(unirouter).swapExactTokensForTokens(
+                outputBal,
+                0,
+                outputToGHSTRoute,
+                address(this),
+                block.timestamp
+            );
+        }
+    }
+
+    // wrap GHST to {want}
+    function wrapGHST() internal {
+        uint256 ghstBal = IERC20(ghst).balanceOf(address(this));
+        if (ghstBal > 0) {
+            IWrappedAToken(want).enterWithUnderlying(ghstBal);
         }
     }
 
@@ -170,8 +189,7 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256) {
-        (uint256 _amount, ) = IMasterChef(chef).userInfo(poolId, address(this));
-        return _amount;
+        return IMasterChef(chef).userInfo(poolId, address(this)).amount;
     }
 
     function setPendingRewardsFunctionName(string calldata _pendingRewardsFunctionName) external onlyManager {
@@ -182,13 +200,9 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
     function rewardsAvailable() public view returns (uint256) {
         string memory signature = StringUtils.concat(pendingRewardsFunctionName, "(uint256,address)");
         bytes memory result = Address.functionStaticCall(
-            chef, 
-            abi.encodeWithSignature(
-                signature,
-                poolId,
-                address(this)
-            )
-        );  
+            chef,
+            abi.encodeWithSignature(signature, poolId, address(this))
+        );
         return abi.decode(result, (uint256));
     }
 
@@ -198,15 +212,14 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
         uint256 outputBal = rewardsAvailable();
         uint256 nativeOut;
         if (outputBal > 0) {
-            try IUniswapRouterETH(unirouter).getAmountsOut(outputBal, outputToNativeRoute)
-                returns (uint256[] memory amountOut) 
-            {
-                nativeOut = amountOut[amountOut.length -1];
-            }
-            catch {}
+            try IUniswapRouter(unirouter).getAmountsOut(outputBal, outputToNativeRoute) returns (
+                uint256[] memory amountOut
+            ) {
+                nativeOut = amountOut[amountOut.length - 1];
+            } catch {}
         }
 
-        return nativeOut * fees.total / DIVISOR * fees.call / DIVISOR;
+        return (((nativeOut * fees.total) / DIVISOR) * fees.call) / DIVISOR;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
@@ -254,11 +267,13 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
     }
 
     function _giveAllowances() internal {
+        IERC20(ghst).safeApprove(want, type(uint).max);
         IERC20(want).safeApprove(chef, type(uint).max);
         IERC20(output).safeApprove(unirouter, type(uint).max);
     }
 
     function _removeAllowances() internal {
+        IERC20(ghst).safeApprove(want, 0);
         IERC20(want).safeApprove(chef, 0);
         IERC20(output).safeApprove(unirouter, 0);
     }
@@ -267,7 +282,7 @@ contract StrategyCommonChefSingle is StratFeeManager, GasFeeThrottler {
         return outputToNativeRoute;
     }
 
-    function outputToWant() external view returns (address[] memory) {
-        return outputToWantRoute;
+    function outputToGHST() external view returns (address[] memory) {
+        return outputToGHSTRoute;
     }
 }
