@@ -1,6 +1,6 @@
 const hardhat = require("hardhat");
 
-const contractName = "StrategyCommonSolidlyGaugeMultiRewardLP";
+const contractName = "StrategyCommonChefSingle";
 
 async function main() {
   await hardhat.run("compile");
@@ -12,11 +12,11 @@ async function main() {
 
   console.log(`${contractName} deployed to:`, contract.address);
 
-  await hardhat.run("verify:verify", {
-    address: contract.address,
-    constructorArguments: [
-    ],
-  })
+  // await hardhat.run("verify:verify", {
+  //   address: contract.address,
+  //   constructorArguments: [
+  //   ],
+  // })
 }
 
 main()

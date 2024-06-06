@@ -161,6 +161,11 @@ const config: DeploymentConfig = {
       chainId: 59144,
       accounts,
     },
+    anvil: {
+      url: process.env.FORK_URL,
+      chainId: 137,
+      accounts,
+    },
   },
   etherscan: {
     // Your API key for Etherscan

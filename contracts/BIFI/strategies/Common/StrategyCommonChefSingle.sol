@@ -18,12 +18,12 @@ contract StrategyCommonChefSingle is StratFeeManagerInitializable, GasFeeThrottl
     // Tokens used
     address public native;
     address public output;
-    address public ghst;
-    address public want;
+    address public constant ghst = 0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7;
+    address public constant want = 0x73958d46B7aA2bc94926d8a215Fa560A5CdCA3eA;
 
     // Third party contracts
-    address public chef;
-    uint256 public poolId;
+    address public constant chef = 0x1fE64677Ab1397e20A1211AFae2758570fEa1B8c;
+    uint256 public constant poolId = 0;
 
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
@@ -44,10 +44,6 @@ contract StrategyCommonChefSingle is StratFeeManagerInitializable, GasFeeThrottl
         CommonAddresses calldata _commonAddresses
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
-        ghst = 0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7;
-        want = 0x73958d46B7aA2bc94926d8a215Fa560A5CdCA3eA; // wapGHST
-        poolId = 0;
-        chef = 0x1fE64677Ab1397e20A1211AFae2758570fEa1B8c;
 
         output = _outputToNativeRoute[0];
         native = _outputToNativeRoute[_outputToNativeRoute.length - 1];
@@ -212,11 +208,8 @@ contract StrategyCommonChefSingle is StratFeeManagerInitializable, GasFeeThrottl
         uint256 outputBal = rewardsAvailable();
         uint256 nativeOut;
         if (outputBal > 0) {
-            try IUniswapRouter(unirouter).getAmountsOut(outputBal, outputToNativeRoute) returns (
-                uint256[] memory amountOut
-            ) {
-                nativeOut = amountOut[amountOut.length - 1];
-            } catch {}
+            uint256[] memory amountOut = IUniswapRouter(unirouter).getAmountsOut(outputBal, outputToNativeRoute);
+            nativeOut = amountOut[amountOut.length - 1];
         }
 
         return (((nativeOut * fees.total) / DIVISOR) * fees.call) / DIVISOR;

@@ -2,15 +2,33 @@ require('dotenv').config();
 const { ethers } = require("hardhat");
 
 async function main() {
-
     const strategyAddress = "0x52E147101a96FeFe1eb71dae93a72945C58454fB";
 
     const strategyAbi = [
         {
             "inputs": [],
-            "name": "harvest",
-            "outputs": [],
-            "stateMutability": "nonpayable",
+            "name": "rewardsAvailable",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "callReward",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
             "type": "function"
         }
     ];
@@ -30,10 +48,13 @@ async function main() {
     // Create contract instance
     const strategy = new ethers.Contract(strategyAddress, strategyAbi, wallet);
 
-    // Call harvest
-    const tx = await strategy.harvest();
-    await tx.wait();
-    console.log("Harvest successful");
+    // Call rewardsAvailable
+    const rewardsAvailable = await strategy.rewardsAvailable();
+    console.log(`Rewards Available: ${ethers.utils.formatUnits(rewardsAvailable, 'gwei')} GWEI`);
+
+    // Call callReward
+    const callReward = await strategy.callReward();
+    console.log(`Call Reward: ${ethers.utils.formatUnits(callReward, 'gwei')} GWEI`);
 }
 
 main()
