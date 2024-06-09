@@ -22,10 +22,7 @@ async function main() {
     const simpleSwapperContract = await ethers.getContractAt(simpleSwapperABI, simpleSwapperAddress);
 
     // Define your swap info data
-    const swapInfoData = "0x0b4c7e4d" + // Method ID
-        "0000000000000000000000000000000000000000000000000000000000000000" +
-        "00000000000000000000000000000000000000000000000000000000000a4fe7" +
-        "00000000000000000000000000000000000000000000000009566ca97c044774";
+    const swapInfoData = "0x0b4c7e4d0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000";
 
     // Define fromToken and toToken addresses
     const fromToken = pUSDCe;
@@ -35,7 +32,9 @@ async function main() {
     const swapInfo = {
         router: want,
         data: swapInfoData,
-        amountIndex: 36
+        amountIndex: 36,
+        // minIndex: 68,
+        // minAmountSign: 0
     };
 
     try {

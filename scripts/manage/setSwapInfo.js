@@ -1,5 +1,5 @@
 import hardhat, { ethers, web3 } from "hardhat";
-import swapperAbi from "../../artifacts/contracts/BIFI/infra/BeefySwapper.sol/BeefySwapper.json";
+import swapperAbi from "../../artifacts/contracts/BIFI/infra/SimpleSwapper.sol/SimpleSwapper.json";
 import UniswapV3RouterAbi from "../../data/abi/UniswapV3Router.json";
 import BalancerVaultAbi from "../../data/abi/BalancerVault.json";
 import VelodromeRouterAbi from "../../data/abi/VelodromeRouter.json";
@@ -240,16 +240,16 @@ async function curve() {
   const router = await ethers.getContractAt(CurveLPAbi, config.curve.router);
   const txData = await router.populateTransaction.add_liquidity(amounts, minMintAmount);
 
-  const amountIndex = 36; // 32 + 4 (second row)
-  const minIndex = 68; // third row
-  const minAmountSign = 0; // no idea
+  const amountIndex = 36;
+  const minIndex = 68;
+  const minAmountSign = 0;
 
   const swapInfo = [
     config.curve.router,
     txData.data,
     amountIndex,
-    minIndex,
-    minAmountSign
+    // minIndex,
+    // minAmountSign
   ];
 
   console.log(txData.data);
