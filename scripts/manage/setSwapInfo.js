@@ -5,12 +5,34 @@ import BalancerVaultAbi from "../../data/abi/BalancerVault.json";
 import VelodromeRouterAbi from "../../data/abi/VelodromeRouter.json";
 import { addressBook } from "blockchain-addressbook";
 
+const CurveLPAbi = [
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_amounts",
+        "type": "uint256[2]"
+      },
+      {
+        "name": "_min_mint_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "add_liquidity",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
 const {
   platforms: { beefyfinance },
   tokens: {
-    WMATIC: {address: WMATIC},
-    USDC: { address: USDC},
-    ETH: { address: ETH},
+    WMATIC: { address: WMATIC },
+    USDC: { address: USDC },
+    ETH: { address: ETH },
+    pUSDCe: { address: pUSDCe },
   },
 } = addressBook.polygon;
 
@@ -19,15 +41,16 @@ const ethers = hardhat.ethers;
 const nullAddress = "0x0000000000000000000000000000000000000000";
 const uint256Max = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 const int256Max = "57896044618658097711785492504343953926634992332820282019728792003956564819967";
-const beefyfinanceSwapper = "0x3Ca6e5cf70bCf11cB8C73BBa13C55DFb91334B11";
+const beefyfinanceSwapper = "0x2604039c6FE27b514408dB247de3a1d8BE461372";
 
 const uniswapV3Router = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
 const uniswapV2Router = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
 const velodromeRouter = "0x0000000000000000000000000000000000000000";
 const balancerVault = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
+const MAILP = "0x53c38755748745e2dd7d0a136fbcc9fb1a5b83b2";
 
 const config = {
-  type: "uniswapV3",
+  type: "curve",
   uniswapV3: {
     path: [[USDC, ETH, 500]],
     router: uniswapV3Router,
@@ -46,10 +69,13 @@ const config = {
     path: [[USDC, WMATIC, false, nullAddress]],
     router: velodromeRouter,
   },
+  curve: {
+    router: MAILP
+  }
 };
 
 async function main() {
-  switch(config.type) {
+  switch (config.type) {
     case 'uniswapV3':
       await uniswapV3();
       break;
@@ -62,8 +88,11 @@ async function main() {
     case 'solidly':
       await solidly();
       break;
+    case 'curve':
+      await curve();
+      break;
   }
-};
+}
 
 async function uniswapV3() {
   const router = await ethers.getContractAt(UniswapV3RouterAbi, config.uniswapV3.router);
@@ -73,10 +102,10 @@ async function uniswapV3() {
     [config.uniswapV3.path[0][0]]
   );
   for (let i = 0; i < config.uniswapV3.path.length; i++) {
-      path = ethers.utils.solidityPack(
-        ["bytes", "uint24", "address"],
-        [path, config.uniswapV3.path[i][2], config.uniswapV3.path[i][1]]
-      );
+    path = ethers.utils.solidityPack(
+      ["bytes", "uint24", "address"],
+      [path, config.uniswapV3.path[i][2], config.uniswapV3.path[i][1]]
+    );
   }
   const exactInputParams = [
     path,
@@ -104,7 +133,7 @@ async function uniswapV3() {
     config.uniswapV3.path[config.uniswapV3.path.length - 1][1],
     swapInfo
   );
-};
+}
 
 async function uniswapV2() {
   const router = await ethers.getContractAt(UniswapV2RouterAbi, config.uniswapV2.router);
@@ -132,7 +161,7 @@ async function uniswapV2() {
     config.uniswapV2.path[config.uniswapV2.path.length - 1],
     swapInfo
   );*/
-};
+}
 
 async function balancer() {
   const router = await ethers.getContractAt(BalancerVaultAbi, config.balancer.router);
@@ -175,7 +204,7 @@ async function balancer() {
     config.uniswapV2.path[config.uniswapV2.path.length - 1],
     swapInfo
   );*/
-};
+}
 
 async function solidly() {
   const router = await ethers.getContractAt(VelodromeRouterAbi, config.solidly.router);
@@ -199,17 +228,48 @@ async function solidly() {
     config.solidly.path[config.solidly.path.length - 1][1],
     swapInfo
   );*/
-};
+}
+
+async function curve() {
+  const amounts = [
+    0,
+    uint256Max
+  ];
+  const minMintAmount = 0
+
+  const router = await ethers.getContractAt(CurveLPAbi, config.curve.router);
+  const txData = await router.populateTransaction.add_liquidity(amounts, minMintAmount);
+
+  const amountIndex = 36; // 32 + 4 (second row)
+  const minIndex = 68; // third row
+  const minAmountSign = 0; // no idea
+
+  const swapInfo = [
+    config.curve.router,
+    txData.data,
+    amountIndex,
+    minIndex,
+    minAmountSign
+  ];
+
+  console.log(txData.data);
+
+  await setSwapInfo(
+    pUSDCe,
+    MAILP,
+    swapInfo
+  );
+}
 
 async function setSwapInfo(fromToken, toToken, swapInfo) {
   const swapper = await ethers.getContractAt(swapperAbi.abi, beefyfinanceSwapper);
 
   let tx = await swapper.setSwapInfo(fromToken, toToken, swapInfo);
   tx = await tx.wait();
-    tx.status === 1
-      ? console.log(`Info set for ${toToken} with tx: ${tx.transactionHash}`)
-      : console.log(`Could not set info for ${toToken}} with tx: ${tx.transactionHash}`)
-};
+  tx.status === 1
+    ? console.log(`Info set for ${toToken} with tx: ${tx.transactionHash}`)
+    : console.log(`Could not set info for ${toToken}} with tx: ${tx.transactionHash}`);
+}
 
 main()
   .then(() => process.exit(0))
