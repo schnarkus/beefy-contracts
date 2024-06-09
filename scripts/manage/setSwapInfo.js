@@ -31,7 +31,7 @@ const {
   tokens: {
     WMATIC: { address: WMATIC },
     USDC: { address: USDC },
-    ETH: { address: ETH },
+    USDT: { address: USDT },
     pUSDCe: { address: pUSDCe },
   },
 } = addressBook.polygon;
@@ -50,9 +50,9 @@ const balancerVault = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 const MAILP = "0x53c38755748745e2dd7d0a136fbcc9fb1a5b83b2";
 
 const config = {
-  type: "curve",
+  type: "uniswapV3",
   uniswapV3: {
-    path: [[USDC, ETH, 500]],
+    path: [[WMATIC, USDT, 500], [USDT, pUSDCe, 100]],
     router: uniswapV3Router,
   },
   uniswapV2: {

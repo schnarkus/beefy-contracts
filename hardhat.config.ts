@@ -50,7 +50,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     polygon: {
-      url: process.env.POLYGON_RPC || "https://polygon.meowrpc.com",
+      url: process.env.POLYGON_RPC || "https://polygon-mainnet.public.blastapi.io",
       chainId: 137,
       accounts,
       gasPrice: 100000000000, // 100 Gwei
