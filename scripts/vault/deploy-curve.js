@@ -29,7 +29,7 @@ const strategyParams = {
     depositToken: pUSDCe,
     rewards: [
     ],
-    unirouter: "0x2604039c6FE27b514408dB247de3a1d8BE461372",
+    unirouter: "0x28C7c59CFF2861eA6F1bEa19Fb03d0c7Fb315724",
     strategist: process.env.STRATEGIST_ADDRESS,
     keeper: beefyfinance.keeper,
     beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
