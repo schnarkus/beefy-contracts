@@ -1,11 +1,8 @@
-require('dotenv').config();
-const { ethers } = require("hardhat");
+const hardhat = require("hardhat");
 
-async function main() {
-
-    const strategyAddress = "0x52E147101a96FeFe1eb71dae93a72945C58454fB";
-
-    const strategyAbi = [
+const config = {
+    strategyAddress: "0x2706d38D63F1D3c3FDb8bd3d4D34cCDFf88161bB",
+    strategyAbi: [
         {
             "inputs": [],
             "name": "harvest",
@@ -13,32 +10,32 @@ async function main() {
             "stateMutability": "nonpayable",
             "type": "function"
         }
-    ];
+    ]
+};
 
-    // Get the private key and fork URL from the .env file
-    const privateKey = process.env.DEPLOYER_PK;
-    const forkUrl = process.env.FORK_URL;
-    if (!privateKey || !forkUrl) {
-        console.error("Please set your PRIVATE_KEY and FORK_URL in a .env file");
-        process.exit(1);
+async function main() {
+    await hardhat.run("compile");
+
+    try {
+        // Retrieve provider and signer from Hardhat runtime environment
+        const [deployer] = await ethers.getSigners();
+
+        // Create contract instance
+        const strategy = new ethers.Contract(config.strategyAddress, config.strategyAbi, deployer);
+
+        // Call harvest
+        const tx = await strategy.harvest();
+        console.log("Harvest transaction sent. Waiting for confirmation...");
+
+        await tx.wait();
+        console.log("Harvest transaction confirmed!");
+
+    } catch (error) {
+        console.error(`Error calling harvest function: ${error.message}`);
     }
-
-    // Connect to the Anvil forked Polygon network
-    const provider = new ethers.providers.JsonRpcProvider(forkUrl);
-    const wallet = new ethers.Wallet(privateKey, provider);
-
-    // Create contract instance
-    const strategy = new ethers.Contract(strategyAddress, strategyAbi, wallet);
-
-    // Call harvest
-    const tx = await strategy.harvest();
-    await tx.wait();
-    console.log("Harvest successful");
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+main().catch(error => {
+    console.error(error);
+    process.exit(1);
+});

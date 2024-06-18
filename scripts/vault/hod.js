@@ -9,11 +9,19 @@ const config = {
     abi: [
         {
             "inputs": [],
-            "name": "unpause",
-            "outputs": [],
-            "stateMutability": "nonpayable",
+            "name": "harvestOnDeposit",
+            "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+            "stateMutability": "view",
             "type": "function"
         }
+        // You can comment out the setHarvestOnDeposit function here
+        // {
+        //     "inputs": [{ "internalType": "bool", "name": "_harvestOnDeposit", "type": "bool" }],
+        //     "name": "setHarvestOnDeposit",
+        //     "outputs": [],
+        //     "stateMutability": "nonpayable",
+        //     "type": "function"
+        // }
     ]
 };
 
@@ -23,11 +31,9 @@ async function main() {
     for (const address of config.targetAddresses) {
         try {
             const contract = await ethers.getContractAt(config.abi, address);
-            const tx = await contract.unpause();
+            const result = await contract.harvestOnDeposit();
 
-            console.log(`Unpause transaction sent to ${address}. Waiting for confirmation...`);
-            await tx.wait();
-            console.log(`Unpause transaction confirmed for ${address}!`);
+            console.log(`harvestOnDeposit() called on ${address}: Result - ${result}`);
         } catch (error) {
             console.error(`Error processing address ${address}: ${error.message}`);
         }

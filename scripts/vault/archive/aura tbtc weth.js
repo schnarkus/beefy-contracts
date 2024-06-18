@@ -40,7 +40,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xCa4E16732268bb2a38DE00439F064F39236834D3",
+  strategyImplementation: "0x09b380Eab0C5AA8b8c161b2dBfF42cdeBC40ee90",
   extraReward: true,
   secondExtraReward: false,
   rewardAssets: [AURA, ETH],

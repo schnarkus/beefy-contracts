@@ -1,7 +1,7 @@
 const hardhat = require("hardhat");
 import { ethers } from "hardhat";
 
-const contractName = "StrategyStellaswapStable";
+const contractName = "StrategyAuraSideChain";
 
 async function main() {
   await hardhat.run("compile");

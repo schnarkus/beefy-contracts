@@ -303,6 +303,32 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         delete rewardTokens;
     }
 
+    function setRoutes(
+        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToInputRoute,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
+        address[] memory _nativeToInputAssets,
+        address[] memory _outputToNativeAssets
+    ) external onlyManager {
+        // Clear existing routes and assets
+        delete nativeToInputRoute;
+        delete outputToNativeRoute;
+        delete nativeToInputAssets;
+        delete outputToNativeAssets;
+
+        // Set new routes
+        for (uint i = 0; i < _nativeToInputRoute.length; i++) {
+            nativeToInputRoute.push(_nativeToInputRoute[i]);
+        }
+
+        for (uint j = 0; j < _outputToNativeRoute.length; j++) {
+            outputToNativeRoute.push(_outputToNativeRoute[j]);
+        }
+
+        // Set new assets
+        nativeToInputAssets = _nativeToInputAssets;
+        outputToNativeAssets = _outputToNativeAssets;
+    }
+
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
         harvestOnDeposit = _harvestOnDeposit;
 
