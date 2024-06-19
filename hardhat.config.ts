@@ -180,6 +180,7 @@ const config: DeploymentConfig = {
       avalanche: process.env.AVAX_API_KEY!,
       linea_mainnet: process.env.LINEA_API_KEY!,
       moonbeam: process.env.MOONBEAM_API_KEY!,
+      opera: process.env.FANTOM_API_KEY!,
     },
     customChains: [
       {

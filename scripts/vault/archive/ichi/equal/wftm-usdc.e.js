@@ -2,7 +2,7 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Common/StrategyEqualizerIchiUniV3.sol/StrategyEqualizerIchiUniV3.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Common/StrategyEqualizerIchi.sol/StrategyEqualizerIchi.json";
 
 const {
   platforms: { equalizer, beefyfinance },
@@ -16,30 +16,29 @@ const {
 const ichiDepositHelper = web3.utils.toChecksumAddress("0xb62399d23d1c81f08eA445A42d7F15cC12090A71");
 const vaultDeployer = web3.utils.toChecksumAddress("0xE495eFdf1d19668a27042D30ee22AC3C58b6fB6c");
 
-const want = web3.utils.toChecksumAddress("0x5a96473b147b3c3790af7c16c1d1a2c2a15d160e");
-const rewardPool = web3.utils.toChecksumAddress("0x5B1f5D595c9C3e06DC6929ef8613964EEbCe2e2C");
+const want = web3.utils.toChecksumAddress("0xdbae863957b545a00931c771891c40db2752ed20");
+const rewardPool = web3.utils.toChecksumAddress("0x58D2C6b91AD80079bF9925E01E535d7b1eAE9090");
 
 const vaultParams = {
-  mooName: "Moo Equalizer Ichi USDC.e-WFTM", // USDC.e deposit token
-  mooSymbol: "mooEqualizerIchiUSDC.e-WFTM",
+  mooName: "Moo Equalizer Ichi WFTM-USDC.e", // WFTM deposit token
+  mooSymbol: "mooEqualizerIchiWFTM-USDC.e",
   delay: 21600,
 };
 
 const strategyParams = {
   want: want,
   rewardPool: rewardPool,
-  depositToken: fUSDCe,
   ichiDepositHelper: ichiDepositHelper,
   vaultDeployer: vaultDeployer,
   outputToNativeRoute: [[EQUAL, FTM, false]],
-  nativeToDepositPath: ethers.utils.solidityPack(["address", "uint24", "address"], [FTM, 3000, fUSDCe]),
+  nativeToDepositRoute: [[FTM, FTM, false]],
   unirouter: equalizer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x8fDD2Ee8C2C04170A37E6F02fD3C3e0236960049",
+  strategyImplementation: "0x65f1F9A882a39a2821EF8fb67B63550A00c6E5bd",
 };
 
 async function main() {
@@ -88,11 +87,10 @@ async function main() {
   const strategyConstructorArguments = [
     strategyParams.want,
     strategyParams.rewardPool,
-    strategyParams.depositToken,
     strategyParams.ichiDepositHelper,
     strategyParams.vaultDeployer,
     strategyParams.outputToNativeRoute,
-    strategyParams.nativeToDepositPath,
+    strategyParams.nativeToDepositRoute,
     [
       vault,
       strategyParams.unirouter,
