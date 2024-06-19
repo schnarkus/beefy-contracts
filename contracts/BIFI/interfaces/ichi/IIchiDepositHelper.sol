@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 
 interface IIchiDepositHelper {
     function forwardDepositToICHIVault(
-        address _vault,
-        address _deployer,
-        address _token,
-        uint256 _amount,
-        uint256 _minAmountOut,
-        address _to
-    ) external;
+        address vault,
+        address vaultDeployer,
+        address token,
+        uint256 amount,
+        uint256 minimumProceeds,
+        address to
+    ) external returns (uint256 vaultTokens);
 }
