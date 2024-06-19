@@ -2,14 +2,13 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Common/StrategyEqualizerIchi.sol/StrategyEqualizerIchi.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Common/StrategyEqualizerIchiUniV3.sol/StrategyEqualizerIchiUniV3.json";
 
 const {
   platforms: { equalizer, beefyfinance },
   tokens: {
     FTM: { address: FTM },
     EQUAL: { address: EQUAL },
-    lzUSDC: { address: lzUSDC },
     fUSDCe: { address: fUSDCe },
   },
 } = addressBook.fantom;
@@ -29,17 +28,18 @@ const vaultParams = {
 const strategyParams = {
   want: want,
   rewardPool: rewardPool,
+  depositToken: fUSDCe,
   ichiDepositHelper: ichiDepositHelper,
   vaultDeployer: vaultDeployer,
   outputToNativeRoute: [[EQUAL, FTM, false]],
-  nativeToDepositRoute: [[FTM, lzUSDC, false], [lzUSDC, fUSDCe, true]],
+  nativeToDepositPath: ethers.utils.solidityPack(["address", "uint24", "address"], [FTM, 3000, fUSDCe]),
   unirouter: equalizer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   feeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x65f1F9A882a39a2821EF8fb67B63550A00c6E5bd",
+  strategyImplementation: "0x8fDD2Ee8C2C04170A37E6F02fD3C3e0236960049",
 };
 
 async function main() {
@@ -88,10 +88,11 @@ async function main() {
   const strategyConstructorArguments = [
     strategyParams.want,
     strategyParams.rewardPool,
+    strategyParams.depositToken,
     strategyParams.ichiDepositHelper,
     strategyParams.vaultDeployer,
     strategyParams.outputToNativeRoute,
-    strategyParams.nativeToDepositRoute,
+    strategyParams.nativeToDepositPath,
     [
       vault,
       strategyParams.unirouter,
