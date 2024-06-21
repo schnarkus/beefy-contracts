@@ -181,6 +181,7 @@ const config: DeploymentConfig = {
       linea_mainnet: process.env.LINEA_API_KEY!,
       moonbeam: process.env.MOONBEAM_API_KEY!,
       opera: process.env.FANTOM_API_KEY!,
+      arbitrumOne: process.env.ARB_API_KEY!,
     },
     customChains: [
       {

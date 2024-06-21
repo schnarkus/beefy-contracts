@@ -53,8 +53,6 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
     // Some needed state variables
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
-    uint256 public totalLocked;
-    uint256 public constant DURATION = 1 days;
 
     event StratHarvest(address indexed harvester, uint256 indexed wantHarvested, uint256 indexed tvl);
     event Deposit(uint256 indexed tvl);
@@ -161,7 +159,6 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
             chargeFees(callFeeRecipient);
             addLiquidity();
             uint256 wantHarvested = balanceOfWant() - before;
-            totalLocked = wantHarvested + lockedProfit();
             deposit();
 
             lastHarvest = block.timestamp;
@@ -243,22 +240,22 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         (address[] memory lpTokens, , ) = IBalancerVault(unirouter).getPoolTokens(poolId);
 
         if (lpTokens[0] != native) {
-            IBalancerVault.BatchSwapStep[] memory _swap1 = BalancerActionsLib.buildSwapStructArray(
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
                 nativeToLp0Route,
                 nativeBal
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swap1, nativeToLp0Assets, funds, int256(nativeBal));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToLp0Assets, funds, int256(nativeBal));
         }
 
-        if (lpTokens[1] == lp1) {
+        if (nativeBal > 0) {
             uint256 lp0Bal = IERC20(lpTokens[0]).balanceOf(address(this));
             (uint256 lp0Amt, uint256 lp1Amt) = _calcSwapAmount(lp0Bal);
 
-            IBalancerVault.BatchSwapStep[] memory _swap2 = BalancerActionsLib.buildSwapStructArray(
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
                 lp0ToLp1Route,
                 lp1Amt
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swap2, lp0Tolp1Assets, funds, int256(lp1Amt));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0Tolp1Assets, funds, int256(lp1Amt));
 
             BalancerActionsLib.multiJoin(
                 unirouter,
@@ -289,15 +286,9 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         lp1Amt = _bal - lp0Amt;
     }
 
-    function lockedProfit() public view returns (uint256) {
-        uint256 elapsed = block.timestamp - lastHarvest;
-        uint256 remaining = elapsed < DURATION ? DURATION - elapsed : 0;
-        return (totalLocked * remaining) / DURATION;
-    }
-
     // calculate the total underlaying 'want' held by the strat.
     function balanceOf() public view returns (uint256) {
-        return balanceOfWant() + balanceOfPool() - lockedProfit();
+        return balanceOfWant() + balanceOfPool();
     }
 
     // it calculates how much 'want' this contract holds.
@@ -432,10 +423,13 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         IERC20(want).safeApprove(booster, type(uint).max);
         IERC20(output).safeApprove(unirouter, type(uint).max);
         IERC20(native).safeApprove(unirouter, type(uint).max);
+
         IERC20(lp0).safeApprove(unirouter, 0);
         IERC20(lp0).safeApprove(unirouter, type(uint).max);
+
         IERC20(lp1).safeApprove(unirouter, 0);
         IERC20(lp1).safeApprove(unirouter, type(uint).max);
+
         if (rewardTokens.length != 0) {
             for (uint i; i < rewardTokens.length; ++i) {
                 if (rewards[rewardTokens[i]].assets[0] != address(0)) {
