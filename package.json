@@ -56,6 +56,7 @@
     "init:contract": "hardhat run scripts/vault/deploy-single-chef-strat.js --network polygon",
     "deposit": "hardhat run scripts/vault/deposit.js --network optimism",
     "stake": "hardhat run scripts/vault/stake.js --network optimism",
+    "withdraw": "hardhat run scripts/vault/withdraw.js --network optimism",
     "callreward": "hardhat run scripts/vault/callreward.js --network localhost",
     "reward": "hardhat run scripts/vault/add-rewards-avax-bal.js --network avax",
     "zap": "hardhat run ./scripts/infra/zapViaAggregator.js --network",
