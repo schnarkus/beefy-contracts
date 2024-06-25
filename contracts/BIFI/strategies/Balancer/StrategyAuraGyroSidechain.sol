@@ -61,34 +61,40 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
 
     function initialize(
         address _want,
-        BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
         BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToLp0Route,
         BeefyBalancerStructs.BatchSwapStruct[] memory _lp0ToLp1Route,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
         address _booster,
         uint256 _pid,
-        address[] memory _outputToNativeAssets,
-        address[] memory _nativeToLp0Assets,
-        address[] memory _lp0Tolp1Assets,
+        address[] memory _nativeToLp0,
+        address[] memory _lp0ToLp1,
+        address[] memory _outputToNative,
         CommonAddresses calldata _commonAddresses
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
 
-        setRoutes(
-            _outputToNativeRoute,
-            _nativeToLp0Route,
-            _lp0ToLp1Route,
-            _outputToNativeAssets,
-            _nativeToLp0Assets,
-            _lp0Tolp1Assets
-        );
+        for (uint i; i < _nativeToLp0Route.length; ++i) {
+            nativeToLp0Route.push(_nativeToLp0Route[i]);
+        }
+
+        for (uint j; j < _lp0ToLp1Route.length; ++j) {
+            lp0ToLp1Route.push(_lp0ToLp1Route[j]);
+        }
+
+        for (uint k; k < _outputToNativeRoute.length; ++k) {
+            outputToNativeRoute.push(_outputToNativeRoute[k]);
+        }
 
         want = _want;
         booster = _booster;
         pid = _pid;
-        output = _outputToNativeAssets[0];
-        native = _nativeToLp0Assets[0];
-        lp0 = _lp0Tolp1Assets[0];
-        lp1 = _lp0Tolp1Assets[_lp0Tolp1Assets.length - 1];
+        outputToNativeAssets = _outputToNative;
+        nativeToLp0Assets = _nativeToLp0;
+        lp0Tolp1Assets = _lp0ToLp1;
+        output = outputToNativeAssets[0];
+        native = nativeToLp0Assets[0];
+        lp0 = lp0Tolp1Assets[0];
+        lp1 = lp0Tolp1Assets[lp0Tolp1Assets.length - 1];
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
@@ -191,11 +197,8 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
                     BeefyBalancerStructs.BatchSwapStruct[] memory swapInfo = new BeefyBalancerStructs.BatchSwapStruct[](
                         rewards[rewardTokens[i]].assets.length - 1
                     );
-                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1; ) {
+                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1; ++j) {
                         swapInfo[j] = rewards[rewardTokens[i]].swapInfo[j];
-                        unchecked {
-                            ++j;
-                        }
                     }
                     IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
                         swapInfo,
@@ -233,7 +236,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
     }
 
-    // Adds liquidity to AMM and gets more LP tokens.
+    // adds liquidity to AMM and gets more LP tokens
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
         bytes32 poolId = IBalancerPool(want).getPoolId();
@@ -286,17 +289,17 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         lp1Amt = _bal - lp0Amt;
     }
 
-    // calculate the total underlaying 'want' held by the strat.
+    // calculate the total underlaying 'want' held by the strat
     function balanceOf() public view returns (uint256) {
         return balanceOfWant() + balanceOfPool();
     }
 
-    // it calculates how much 'want' this contract holds.
+    // calculates how much 'want' this contract holds
     function balanceOfWant() public view returns (uint256) {
         return IERC20(want).balanceOf(address(this));
     }
 
-    // it calculates how much 'want' the strategy has working in the farm.
+    // calculates how much 'want' the strategy has working in the farm
     function balanceOfPool() public view returns (uint256) {
         return IAuraRewardPool(rewardPool).balanceOf(address(this));
     }
@@ -308,7 +311,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
 
     // native reward amount for calling harvest
     function callReward() public pure returns (uint256) {
-        return 0; // multiple swap providers with no easy way to estimate native output.
+        return 0; // multiple swap providers with no easy way to estimate native output
     }
 
     function addRewardToken(
@@ -389,7 +392,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         }
     }
 
-    // called as part of strat migration. Sends all the available funds back to the vault.
+    // called as part of strat migration. Sends all the available funds back to the vault
     function retireStrat() external {
         require(msg.sender == vault, "!vault");
 
@@ -399,7 +402,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         IERC20(want).transfer(vault, wantBal);
     }
 
-    // pauses deposits and withdraws all funds from third party systems.
+    // pauses deposits and withdraws all funds from third party systems
     function panic() public onlyManager {
         pause();
         IAuraRewardPool(rewardPool).withdrawAndUnwrap(balanceOfPool(), false);
@@ -459,4 +462,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
             }
         }
     }
+
+    // allow this contract to receive ether
+    receive() external payable {}
 }

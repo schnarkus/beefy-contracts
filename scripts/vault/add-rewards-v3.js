@@ -11,7 +11,7 @@ const {
 } = addressBook.arbitrum;
 
 async function main() {
-    const contractAddress = "0xF9258144f91290Bb1288B807fC2902279e4abC7d"; // Contract address
+    const contractAddress = "0x910cDd6c4014e18fd08270B448B9492008203ABc"; // Contract address
     const contract = await ethers.getContractAt(stratAbi.abi, contractAddress); // Get contract instance
 
     // Add reward tokens
