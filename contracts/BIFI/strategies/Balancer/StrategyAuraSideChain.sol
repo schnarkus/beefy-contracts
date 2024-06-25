@@ -64,30 +64,21 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
 
-        for (uint i; i < _nativeToInputRoute.length; ++i) {
-            nativeToInputRoute.push(_nativeToInputRoute[i]);
-        }
-
-        for (uint j; j < _outputToNativeRoute.length; ++j) {
-            outputToNativeRoute.push(_outputToNativeRoute[j]);
-        }
-
         want = _want;
         booster = _booster;
         pid = _pid;
-        outputToNativeAssets = _outputToNative;
-        nativeToInputAssets = _nativeToInput;
-        output = outputToNativeAssets[0];
-        native = nativeToInputAssets[0];
-        input.input = nativeToInputAssets[nativeToInputAssets.length - 1];
+        output = _outputToNative[0];
+        native = _nativeToInput[0];
+        input.input = _nativeToInput[_nativeToInput.length - 1];
         input.isComposable = _inputIsComposable;
-        uniswapRouter = address(0x2626664c2603336E57B271c5C0b26F421741e481);
+        uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
 
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
 
+        setRoutes(_nativeToInputRoute, _outputToNativeRoute, _nativeToInput, _outputToNative);
         _giveAllowances();
     }
 
@@ -201,7 +192,7 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
                         int256(bal)
                     );
                 } else {
-                    UniV3Actions.swapV3(uniswapRouter, rewards[rewardTokens[i]].routeToNative, bal);
+                    UniV3Actions.swapV3WithDeadline(uniswapRouter, rewards[rewardTokens[i]].routeToNative, bal);
                 }
             }
         }
@@ -308,14 +299,12 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
         address[] memory _nativeToInputAssets,
         address[] memory _outputToNativeAssets
-    ) external onlyManager {
-        // Clear existing routes and assets
+    ) public onlyOwner {
         delete nativeToInputRoute;
         delete outputToNativeRoute;
         delete nativeToInputAssets;
         delete outputToNativeAssets;
 
-        // Set new routes
         for (uint i = 0; i < _nativeToInputRoute.length; i++) {
             nativeToInputRoute.push(_nativeToInputRoute[i]);
         }
@@ -324,7 +313,6 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
             outputToNativeRoute.push(_outputToNativeRoute[j]);
         }
 
-        // Set new assets
         nativeToInputAssets = _nativeToInputAssets;
         outputToNativeAssets = _outputToNativeAssets;
     }

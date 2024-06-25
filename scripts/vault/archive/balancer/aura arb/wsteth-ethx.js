@@ -11,14 +11,15 @@ const {
     AURA: { address: AURA },
     ETH: { address: ETH },
     ARB: { address: ARB },
+    wstETH: { address: wstETH },
   },
 } = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0x90e6CB5249f5e1572afBF8A96D8A1ca6aCFFd739");
+const want = web3.utils.toChecksumAddress("0x7B54C44fBe6Db6D97FD22b8756f89c0aF16202Cc");
 
 const vaultParams = {
-  mooName: "Moo Aura Arb rsETH-WETH",
-  mooSymbol: "mooAuraArbrsETH-WETH",
+  mooName: "Moo Aura Arb wstETH-ETHx",
+  mooSymbol: "mooAuraArbwstETH-ETHx",
   delay: 21600,
 };
 
@@ -27,11 +28,11 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 const strategyParams = {
   want: want,
   inputIsComposable: true,
-  nativeToInputRoute: [["0x90e6cb5249f5e1572afbf8a96d8a1ca6acffd73900000000000000000000055c", 0, 1]],
+  nativeToInputRoute: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1], ["0x7b54c44fbe6db6d97fd22b8756f89c0af16202cc00000000000000000000053c", 1, 2]],
   outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  pid: 66,
-  nativeToInput: [ETH, want],
+  pid: 65,
+  nativeToInput: [ETH, wstETH, want],
   outputToNative: [BAL, ETH],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
@@ -136,19 +137,19 @@ async function main() {
       : console.log(`AURA Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
   }
 
-  if (strategyParams.secondExtraReward) {
-    stratInitTx = await stratContract.addRewardToken(
-      strategyParams.secondRewardAssets[0],
-      [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
-      ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"],
-      ethers.utils.solidityPack(["address", "uint24", "address"], [ARB, 500, ETH]),
-      100
-    );
-    stratInitTx = await stratInitTx.wait();
-    stratInitTx.status === 1
-      ? console.log(`ARB Reward Added with tx: ${stratInitTx.transactionHash}`)
-      : console.log(`ARB Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
-  }
+  // if (strategyParams.secondExtraReward) {
+  //   stratInitTx = await stratContract.addRewardToken(
+  //     strategyParams.secondRewardAssets[0],
+  //     [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
+  //     ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"],
+  //     ethers.utils.solidityPack(["address", "uint24", "address"], [ARB, 500, ETH]),
+  //     100
+  //   );
+  //   stratInitTx = await stratInitTx.wait();
+  //   stratInitTx.status === 1
+  //     ? console.log(`ARB Reward Added with tx: ${stratInitTx.transactionHash}`)
+  //     : console.log(`ARB Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
+  // }
 }
 
 main()
