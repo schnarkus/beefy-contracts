@@ -43,7 +43,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
     BeefyBalancerStructs.BatchSwapStruct[] public lp0ToLp1Route;
     BeefyBalancerStructs.BatchSwapStruct[] public outputToNativeRoute;
     address[] public nativeToLp0Assets;
-    address[] public lp0Tolp1Assets;
+    address[] public lp0ToLp1Assets;
     address[] public outputToNativeAssets;
 
     // Our needed reward token information
@@ -66,35 +66,20 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
         address _booster,
         uint256 _pid,
-        address[] memory _nativeToLp0,
-        address[] memory _lp0ToLp1,
-        address[] memory _outputToNative,
+        address[] memory _nativeToLp0Assets,
+        address[] memory _lp0ToLp1Assets,
+        address[] memory _outputToNativeAssets,
         CommonAddresses calldata _commonAddresses
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
 
-        for (uint i; i < _nativeToLp0Route.length; ++i) {
-            nativeToLp0Route.push(_nativeToLp0Route[i]);
-        }
-
-        for (uint j; j < _lp0ToLp1Route.length; ++j) {
-            lp0ToLp1Route.push(_lp0ToLp1Route[j]);
-        }
-
-        for (uint k; k < _outputToNativeRoute.length; ++k) {
-            outputToNativeRoute.push(_outputToNativeRoute[k]);
-        }
-
         want = _want;
         booster = _booster;
         pid = _pid;
-        outputToNativeAssets = _outputToNative;
-        nativeToLp0Assets = _nativeToLp0;
-        lp0Tolp1Assets = _lp0ToLp1;
-        output = outputToNativeAssets[0];
-        native = nativeToLp0Assets[0];
-        lp0 = lp0Tolp1Assets[0];
-        lp1 = lp0Tolp1Assets[lp0Tolp1Assets.length - 1];
+        output = _outputToNativeAssets[0];
+        native = _nativeToLp0Assets[0];
+        lp0 = _lp0ToLp1Assets[0];
+        lp1 = _lp0ToLp1Assets[_lp0ToLp1Assets.length - 1];
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
         (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
@@ -102,6 +87,14 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
 
+        setRoutes(
+            _outputToNativeRoute,
+            _nativeToLp0Route,
+            _lp0ToLp1Route,
+            _outputToNativeAssets,
+            _nativeToLp0Assets,
+            _lp0ToLp1Assets
+        );
         _giveAllowances();
     }
 
@@ -258,7 +251,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
                 lp0ToLp1Route,
                 lp1Amt
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0Tolp1Assets, funds, int256(lp1Amt));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0ToLp1Assets, funds, int256(lp1Amt));
 
             BalancerActionsLib.multiJoin(
                 unirouter,
@@ -284,9 +277,11 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         uint256 amountA = (balances[0] * 1e18) / supply;
         uint256 amountB = (balances[1] * 1e18) / supply;
 
-        uint256 ratio = ((rate0 * 1e18) / (rate1 * amountB)) / amountA;
-        lp0Amt = (_bal * 1e18) / (ratio + 1e18);
+        uint256 ratio = (rate0 * 1e18 * amountA) / (rate1 * amountB);
+        lp0Amt = (_bal * ratio) / (ratio + 1e18);
         lp1Amt = _bal - lp0Amt;
+
+        return (lp0Amt, lp1Amt);
     }
 
     // calculate the total underlaying 'want' held by the strat
@@ -357,14 +352,14 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         BeefyBalancerStructs.BatchSwapStruct[] memory _lp0ToLp1Route,
         address[] memory _outputToNativeAssets,
         address[] memory _nativeToLp0Assets,
-        address[] memory _lp0Tolp1Assets
+        address[] memory _lp0ToLp1Assets
     ) public onlyOwner {
         delete outputToNativeRoute;
         delete nativeToLp0Route;
         delete lp0ToLp1Route;
         delete outputToNativeAssets;
         delete nativeToLp0Assets;
-        delete lp0Tolp1Assets;
+        delete lp0ToLp1Assets;
 
         for (uint i = 0; i < _outputToNativeRoute.length; i++) {
             outputToNativeRoute.push(_outputToNativeRoute[i]);
@@ -379,7 +374,7 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         for (uint k = 0; k < _lp0ToLp1Route.length; k++) {
             lp0ToLp1Route.push(_lp0ToLp1Route[k]);
         }
-        lp0Tolp1Assets = _lp0Tolp1Assets;
+        lp0ToLp1Assets = _lp0ToLp1Assets;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {

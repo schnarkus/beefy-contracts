@@ -27,21 +27,21 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   nativeToLp0Route: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 0]], // nothing
   lp0ToLp1Route: [["0xef0c116a2818a5b1a5d836a291856a321f43c2fb00020000000000000000053a", 0, 1]],
+  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
   pid: 64,
-  outputToNativeAssets: [BAL, ETH],
   nativeToLp0Assets: [ETH],
-  lp0Tolp1Assets: [ETH, WOETH],
+  lp0ToLp1Assets: [ETH, WOETH],
+  outputToNativeAssets: [BAL, ETH],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xecf3757Bd55fee2bD692A09D27Fc6f5f45E9210c",
+  strategyImplementation: "0xC350d440ba9Fb617C25489D7640Fbc593764A387",
   extraReward: true,
   rewardAssets: [AURA, ETH],
   rewardRoute: [
@@ -96,14 +96,14 @@ async function main() {
 
   const strategyConstructorArguments = [
     want,
-    strategyParams.outputToNativeRoute,
     strategyParams.nativeToLp0Route,
     strategyParams.lp0ToLp1Route,
+    strategyParams.outputToNativeRoute,
     strategyParams.booster,
     strategyParams.pid,
-    strategyParams.outputToNativeAssets,
     strategyParams.nativeToLp0Assets,
-    strategyParams.lp0Tolp1Assets,
+    strategyParams.lp0ToLp1Assets,
+    strategyParams.outputToNativeAssets,
     [
       vault,
       strategyParams.unirouter,

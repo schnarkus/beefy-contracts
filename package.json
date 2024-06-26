@@ -89,7 +89,8 @@
     "setRoutes": "hardhat run scripts/vault/setRoutes.js --network base",
     "token": "hardhat run scripts/vault/rewardTokens.js --network base",
     "vaults": "hardhat run scripts/vault/vaults.js",
-    "lsapr": "hardhat run scripts/vault/lsapr.js"
+    "lsapr": "hardhat run scripts/vault/lsapr.js",
+    "gyro": "hardhat run scripts/vault/deploy-gyro-strat-type.js --network arbitrum"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",
