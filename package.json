@@ -84,7 +84,7 @@
     "panic": "hardhat run scripts/vault/panic.js --network base",
     "unpause": "hardhat run scripts/vault/unpause.js --network base",
     "setVault": "hardhat run scripts/vault/setVault.js --network base",
-    "send": "hardhat run scripts/vault/send.js --network base",
+    "send": "hardhat run scripts/vault/send.js --network arbitrum",
     "gauge": "hardhat run scripts/vault/extraGauge.js --network base",
     "setRoutes": "hardhat run scripts/vault/setRoutes.js --network base",
     "token": "hardhat run scripts/vault/rewardTokens.js --network base",

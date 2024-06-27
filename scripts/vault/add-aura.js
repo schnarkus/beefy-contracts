@@ -13,15 +13,14 @@ const {
 const AURA = web3.utils.toChecksumAddress("0x1509706a6c66CA549ff0cB464de88231DDBe213B");
 
 async function main() {
-    const contractAddress = "0x377AEA407A867DBA975670065905993CE359dA47"; // Contract address
+    const contractAddress = "0x60240Fa2a29c4ee646F03d5495038F2a6e969b80"; // Contract address
     const contract = await ethers.getContractAt(stratAbi.abi, contractAddress); // Get contract instance
 
     // Add reward tokens
     const rewardToken = AURA; // Address of the reward token
-    const rewardAssets = [AURA, BAL, ETH],
+    const rewardAssets = [AURA, ETH],
     const rewardRoute = [
-        ["0xbcaa6c053cab3dd73a2e898d89a4f84a180ae1ca000100000000000000000458", 0, 1],
-        ["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 1, 2],
+        ["0x64abeae398961c10cbb50ef359f1db41fc3129ff000200000000000000000526", 0, 1],
     ],
     const bytes0 = "0x0000000000000000000000000000000000000000000000000000000000000000";
     const additionalData = bytes0;
