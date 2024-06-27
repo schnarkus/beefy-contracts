@@ -277,8 +277,8 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
         uint256 amountA = (balances[0] * 1e18) / supply;
         uint256 amountB = (balances[1] * 1e18) / supply;
 
-        uint256 ratio = (rate0 * 1e18 * amountA) / (rate1 * amountB);
-        lp0Amt = (_bal * ratio) / (ratio + 1e18);
+        uint256 ratio = rate0 * 1e18 / rate1 * amountB / amountA;
+        lp0Amt = _bal * 1e18 / (ratio + 1e18);
         lp1Amt = _bal - lp0Amt;
 
         return (lp0Amt, lp1Amt);

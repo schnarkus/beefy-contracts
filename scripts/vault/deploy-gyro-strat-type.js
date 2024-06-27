@@ -11,16 +11,16 @@ const {
     BAL: { address: BAL },
     ARB: { address: ARB },
     ETH: { address: ETH },
+    wstETH: { address: wstETH },
+    weETH: { address: weETH },
   },
 } = addressBook.arbitrum;
 
-const WOETH = web3.utils.toChecksumAddress("0xD8724322f44E5c58D7A815F542036fb17DbbF839");
-
-const want = web3.utils.toChecksumAddress("0xef0c116A2818A5b1A5D836A291856A321f43C2Fb");
+const want = web3.utils.toChecksumAddress("0xCDCef9765D369954a4A936064535710f7235110A");
 
 const vaultParams = {
-  mooName: "Moo Aura Gyro Arb WETH-WOETH",
-  mooSymbol: "mooAuraGyroArbWETH-WOETH",
+  mooName: "Moo Aura Gyro Arb weETH-wstETH",
+  mooSymbol: "mooAuraGyroArbweETH-wstETH",
   delay: 21600,
 };
 
@@ -28,13 +28,13 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  nativeToLp0Route: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 0]], // nothing
-  lp0ToLp1Route: [["0xef0c116a2818a5b1a5d836a291856a321f43c2fb00020000000000000000053a", 0, 1]],
+  nativeToLp0Route: [["0x9791d590788598535278552eecd4b211bfc790cb000000000000000000000498", 0, 1], ["0xcdcef9765d369954a4a936064535710f7235110a000200000000000000000558", 1, 2]],
+  lp0ToLp1Route: [["0xcdcef9765d369954a4a936064535710f7235110a000200000000000000000558", 0, 1]],
   outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   booster: "0x98Ef32edd24e2c92525E59afc4475C1242a30184",
-  pid: 64,
-  nativeToLp0Assets: [ETH],
-  lp0ToLp1Assets: [ETH, WOETH],
+  pid: 67,
+  nativeToLp0Assets: [ETH, wstETH, weETH],
+  lp0ToLp1Assets: [weETH, wstETH],
   outputToNativeAssets: [BAL, ETH],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
@@ -42,7 +42,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x8a9b983B563AC94d18a153191bFdaEB3637C720b",
+  strategyImplementation: "0x295f01665b2Ce9fc1056BF54A2DF0842a18794C5",
   extraReward: true,
   secondExtraReward: true,
   rewardAssets: [AURA, ETH],
