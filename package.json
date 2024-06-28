@@ -52,7 +52,7 @@
     "deploy:chain": "hardhat run scripts/infra/deployChain.js --network",
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
-    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network arbitrum",
+    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network optimism",
     "init:contract": "hardhat run scripts/vault/deploy-single-chef-strat.js --network polygon",
     "deposit": "hardhat run scripts/vault/deposit.js --network optimism",
     "stake": "hardhat run scripts/vault/stake.js --network optimism",
@@ -73,7 +73,7 @@
     "deploy:vaultFactory": "hardhat run scripts/deploy-vault-proxyFactory.js --network",
     "fork:bsc": "hardhat node --fork bsc",
     "deploy:tutorial": "hardhat run tutorials/deploy-pancakeswap-vault.js --network localhost",
-    "verify": "hardhat run scripts/vault/verify.js --network arbitrum",
+    "verify": "hardhat run scripts/vault/verify.js --network optimism",
     "detect": "hardhat run scripts/vault/owner.js --network arbitrum",
     "merkl": "hardhat run scripts/vault/merkl.js --network polygon",
     "curve": "hardhat run scripts/vault/curve-usdce-reward.js --network polygon",
@@ -90,7 +90,7 @@
     "token": "hardhat run scripts/vault/rewardTokens.js --network base",
     "vaults": "hardhat run scripts/vault/vaults.js",
     "lsapr": "hardhat run scripts/vault/lsapr.js",
-    "gyro": "hardhat run scripts/vault/deploy-gyro-strat-type.js --network arbitrum"
+    "gyro": "hardhat run scripts/vault/deploy-gyro-strat-type.js --network optimism"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",
