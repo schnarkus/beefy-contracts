@@ -23,7 +23,7 @@ interface IMinter {
     function mint(address gauge) external;
 }
 
-contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
+contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
@@ -421,6 +421,10 @@ contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
             lp0ToLp1Route.push(_lp0ToLp1Route[k]);
         }
         lp0ToLp1Assets = _lp0ToLp1Assets;
+    }
+
+    function setBalSwapOn(bool _balSwapOn) external onlyManager {
+        balSwapOn = _balSwapOn;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
