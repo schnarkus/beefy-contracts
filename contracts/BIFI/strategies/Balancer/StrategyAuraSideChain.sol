@@ -7,6 +7,7 @@ import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/beethovenx/IBalancerVault.sol";
 import "../../interfaces/aura/IAuraRewardPool.sol";
 import "../../interfaces/aura/IAuraBooster.sol";
+import "../../interfaces/curve/IRewardsGauge.sol";
 import "../Common/StratFeeManagerInitializable.sol";
 import "./BalancerActionsLib.sol";
 import "./BeefyBalancerStructs.sol";
@@ -14,6 +15,10 @@ import "../../utils/UniV3Actions.sol";
 
 interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
+}
+
+interface IMinter {
+    function mint(address gauge) external;
 }
 
 contract StrategyAuraSideChain is StratFeeManagerInitializable {
@@ -30,6 +35,7 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     address public booster;
     address public rewardPool;
     uint256 public pid;
+    address public rewardsGauge;
 
     IBalancerVault.SwapKind public swapKind;
     IBalancerVault.FundManagement public funds;
@@ -46,6 +52,9 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
 
+    bool public isAura;
+    bool public balSwapOn;
+
     event StratHarvest(address indexed harvester, uint256 indexed wantHarvested, uint256 indexed tvl);
     event Deposit(uint256 indexed tvl);
     event Withdraw(uint256 indexed tvl);
@@ -53,11 +62,13 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
 
     function initialize(
         address _want,
+        bool _isAura,
+        uint256 _pid,
+        address _rewardsGauge,
+        bool _balSwapOn,
         bool _inputIsComposable,
         BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToInputRoute,
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
-        address _booster,
-        uint256 _pid,
         address[] memory _nativeToInput,
         address[] memory _outputToNative,
         CommonAddresses calldata _commonAddresses
@@ -65,15 +76,25 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         __StratFeeManager_init(_commonAddresses);
 
         want = _want;
-        booster = _booster;
-        pid = _pid;
+        isAura = _isAura;
+        booster = address(0x98Ef32edd24e2c92525E59afc4475C1242a30184);
         output = _outputToNative[0];
         native = _nativeToInput[0];
         input.input = _nativeToInput[_nativeToInput.length - 1];
         input.isComposable = _inputIsComposable;
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
-        (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
+        if (isAura) {
+            pid = _pid;
+            (, , , rewardPool, , ) = IAuraBooster(booster).poolInfo(pid);
+            rewardsGauge = address(0);
+            balSwapOn = false;
+        } else {
+            pid = 0;
+            rewardPool = address(0);
+            rewardsGauge = _rewardsGauge;
+            balSwapOn = _balSwapOn;
+        }
 
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
@@ -87,7 +108,11 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal > 0) {
-            IAuraBooster(booster).deposit(pid, wantBal, true);
+            if (isAura) {
+                IAuraBooster(booster).deposit(pid, wantBal, true);
+            } else {
+                IRewardsGauge(rewardsGauge).deposit(wantBal);
+            }
             emit Deposit(balanceOf());
         }
     }
@@ -98,7 +123,11 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         uint256 wantBal = IERC20(want).balanceOf(address(this));
 
         if (wantBal < _amount) {
-            IAuraRewardPool(rewardPool).withdrawAndUnwrap(_amount - wantBal, false);
+            if (isAura) {
+                IAuraRewardPool(rewardPool).withdrawAndUnwrap(_amount - wantBal, false);
+            } else {
+                IRewardsGauge(rewardsGauge).withdraw(_amount - wantBal);
+            }
             wantBal = IERC20(want).balanceOf(address(this));
         }
 
@@ -134,7 +163,16 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     // compounds earnings and charges performance fee
     function _harvest(address callFeeRecipient) internal whenNotPaused {
         uint256 before = balanceOfWant();
-        IAuraRewardPool(rewardPool).getReward();
+        if (isAura) {
+            IAuraRewardPool(rewardPool).getReward();
+        } else {
+            if (balSwapOn) {
+                IMinter minter = IMinter(IRewardsGauge(rewardsGauge).bal_pseudo_minter());
+                minter.mint(rewardsGauge);
+            }
+            IRewardsGauge(rewardsGauge).claim_rewards();
+        }
+
         swapRewardsToNative();
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
 
@@ -165,6 +203,7 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
                 int256(outputBal)
             );
         }
+
         // extras
         for (uint i; i < rewardTokens.length; ++i) {
             uint bal = IERC20(rewardTokens[i]).balanceOf(address(this));
@@ -232,7 +271,7 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
         }
     }
 
-    // calculate the total underlaying 'want' held by the strat.
+    // calculate the total underlying 'want' held by the strat.
     function balanceOf() public view returns (uint256) {
         return balanceOfWant() + balanceOfPool();
     }
@@ -244,12 +283,20 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
 
     // it calculates how much 'want' the strategy has working in the farm.
     function balanceOfPool() public view returns (uint256) {
-        return IAuraRewardPool(rewardPool).balanceOf(address(this));
+        if (isAura) {
+            return IAuraRewardPool(rewardPool).balanceOf(address(this));
+        } else {
+            return IRewardsGauge(rewardsGauge).balanceOf(address(this));
+        }
     }
 
     // returns rewards unharvested
     function rewardsAvailable() public view returns (uint256) {
-        return IAuraRewardPool(rewardPool).earned(address(this));
+        if (isAura) {
+            return IAuraRewardPool(rewardPool).earned(address(this));
+        } else {
+            return IRewardsGauge(rewardsGauge).claimable_reward(address(this), output);
+        }
     }
 
     // native reward amount for calling harvest
@@ -331,7 +378,11 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     function retireStrat() external {
         require(msg.sender == vault, "!vault");
 
-        IAuraRewardPool(rewardPool).withdrawAndUnwrap(balanceOfPool(), false);
+        if (isAura) {
+            IAuraRewardPool(rewardPool).withdrawAndUnwrap(balanceOfPool(), false);
+        } else {
+            IRewardsGauge(rewardsGauge).withdraw(balanceOfPool());
+        }
 
         uint256 wantBal = IERC20(want).balanceOf(address(this));
         IERC20(want).transfer(vault, wantBal);
@@ -340,7 +391,11 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     // pauses deposits and withdraws all funds from third party systems.
     function panic() public onlyManager {
         pause();
-        IAuraRewardPool(rewardPool).withdrawAndUnwrap(balanceOfPool(), false);
+        if (isAura) {
+            IAuraRewardPool(rewardPool).withdrawAndUnwrap(balanceOfPool(), false);
+        } else {
+            IRewardsGauge(rewardsGauge).withdraw(balanceOfPool());
+        }
     }
 
     function pause() public onlyManager {
@@ -358,7 +413,11 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     }
 
     function _giveAllowances() internal {
-        IERC20(want).safeApprove(booster, type(uint).max);
+        if (isAura) {
+            IERC20(want).safeApprove(booster, type(uint).max);
+        } else {
+            IERC20(want).safeApprove(rewardsGauge, type(uint).max);
+        }
         IERC20(output).safeApprove(unirouter, type(uint).max);
         IERC20(native).safeApprove(unirouter, type(uint).max);
         if (!input.isComposable) {
@@ -379,7 +438,11 @@ contract StrategyAuraSideChain is StratFeeManagerInitializable {
     }
 
     function _removeAllowances() internal {
-        IERC20(want).safeApprove(booster, 0);
+        if (isAura) {
+            IERC20(want).safeApprove(booster, 0);
+        } else {
+            IERC20(want).safeApprove(rewardsGauge, 0);
+        }
         IERC20(output).safeApprove(unirouter, 0);
         IERC20(native).safeApprove(unirouter, 0);
         if (!input.isComposable) {

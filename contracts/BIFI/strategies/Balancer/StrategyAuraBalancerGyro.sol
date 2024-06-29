@@ -15,40 +15,48 @@ import "../../utils/UniV3Actions.sol";
 
 interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
+
+    function getTokenRates() external view returns (uint256, uint256);
 }
 
 interface IMinter {
     function mint(address gauge) external;
 }
 
-contract StrategyAuraBalancer is StratFeeManagerInitializable {
+contract StrategyAuraGyroSidechain is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
     address public want;
     address public output;
     address public native;
-
-    BeefyBalancerStructs.Input public input;
+    address public lp0;
+    address public lp1;
 
     // Third party contracts
     address public booster;
     address public rewardPool;
+    address public uniswapRouter;
     uint256 public pid;
     address public rewardsGauge;
 
+    // Balancer Router set up
     IBalancerVault.SwapKind public swapKind;
     IBalancerVault.FundManagement public funds;
 
-    BeefyBalancerStructs.BatchSwapStruct[] public nativeToInputRoute;
+    // Swap details
+    BeefyBalancerStructs.BatchSwapStruct[] public nativeToLp0Route;
+    BeefyBalancerStructs.BatchSwapStruct[] public lp0ToLp1Route;
     BeefyBalancerStructs.BatchSwapStruct[] public outputToNativeRoute;
-    address[] public nativeToInputAssets;
+    address[] public nativeToLp0Assets;
+    address[] public lp0ToLp1Assets;
     address[] public outputToNativeAssets;
 
+    // Our needed reward token information
     mapping(address => BeefyBalancerStructs.Reward) public rewards;
     address[] public rewardTokens;
 
-    address public uniswapRouter;
+    // Some needed state variables
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
 
@@ -66,11 +74,12 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         uint256 _pid,
         address _rewardsGauge,
         bool _balSwapOn,
-        bool _inputIsComposable,
-        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToInputRoute,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToLp0Route,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _lp0ToLp1Route,
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
-        address[] memory _nativeToInput,
-        address[] memory _outputToNative,
+        address[] memory _nativeToLp0Assets,
+        address[] memory _lp0ToLp1Assets,
+        address[] memory _outputToNativeAssets,
         CommonAddresses calldata _commonAddresses
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
@@ -78,10 +87,10 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         want = _want;
         isAura = _isAura;
         booster = address(0x98Ef32edd24e2c92525E59afc4475C1242a30184);
-        output = _outputToNative[0];
-        native = _nativeToInput[0];
-        input.input = _nativeToInput[_nativeToInput.length - 1];
-        input.isComposable = _inputIsComposable;
+        output = _outputToNativeAssets[0];
+        native = _nativeToLp0Assets[0];
+        lp0 = _lp0ToLp1Assets[0];
+        lp1 = _lp0ToLp1Assets[_lp0ToLp1Assets.length - 1];
         uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
         if (isAura) {
@@ -99,7 +108,14 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
 
-        setRoutes(_nativeToInputRoute, _outputToNativeRoute, _nativeToInput, _outputToNative);
+        setRoutes(
+            _outputToNativeRoute,
+            _nativeToLp0Route,
+            _lp0ToLp1Route,
+            _outputToNativeAssets,
+            _nativeToLp0Assets,
+            _lp0ToLp1Assets
+        );
         _giveAllowances();
     }
 
@@ -212,11 +228,8 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
                     BeefyBalancerStructs.BatchSwapStruct[] memory swapInfo = new BeefyBalancerStructs.BatchSwapStruct[](
                         rewards[rewardTokens[i]].assets.length - 1
                     );
-                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1; ) {
+                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1; ++j) {
                         swapInfo[j] = rewards[rewardTokens[i]].swapInfo[j];
-                        unchecked {
-                            ++j;
-                        }
                     }
                     IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
                         swapInfo,
@@ -254,34 +267,72 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         emit ChargedFees(callFeeAmount, beefyFeeAmount, strategistFeeAmount);
     }
 
-    // Adds liquidity to AMM and gets more LP tokens.
+    // adds liquidity to AMM and gets more LP tokens
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
-        if (native != input.input) {
+        bytes32 poolId = IBalancerPool(want).getPoolId();
+        (address[] memory lpTokens, , ) = IBalancerVault(unirouter).getPoolTokens(poolId);
+
+        if (lpTokens[0] != native) {
             IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
-                nativeToInputRoute,
+                nativeToLp0Route,
                 nativeBal
             );
-            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToInputAssets, funds, int256(nativeBal));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToLp0Assets, funds, int256(nativeBal));
         }
 
-        if (input.input != want) {
-            uint256 inputBal = IERC20(input.input).balanceOf(address(this));
-            BalancerActionsLib.balancerJoin(unirouter, IBalancerPool(want).getPoolId(), input.input, inputBal);
+        if (nativeBal > 0) {
+            uint256 lp0Bal = IERC20(lpTokens[0]).balanceOf(address(this));
+            (uint256 lp0Amt, uint256 lp1Amt) = _calcSwapAmount(lp0Bal);
+
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                lp0ToLp1Route,
+                lp1Amt
+            );
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0ToLp1Assets, funds, int256(lp1Amt));
+
+            BalancerActionsLib.multiJoin(
+                unirouter,
+                want,
+                poolId,
+                lpTokens[0],
+                lpTokens[1],
+                lp0Amt,
+                IERC20(lpTokens[1]).balanceOf(address(this))
+            );
         }
     }
 
-    // calculate the total underlying 'want' held by the strat.
+    function _calcSwapAmount(uint256 _bal) private view returns (uint256 lp0Amt, uint256 lp1Amt) {
+        lp0Amt = _bal / 2;
+        lp1Amt = _bal - lp0Amt;
+
+        (uint256 rate0, uint256 rate1) = IBalancerPool(want).getTokenRates();
+
+        (, uint256[] memory balances, ) = IBalancerVault(unirouter).getPoolTokens(IBalancerPool(want).getPoolId());
+        uint256 supply = IERC20(want).totalSupply();
+
+        uint256 amountA = (balances[0] * 1e18) / supply;
+        uint256 amountB = (balances[1] * 1e18) / supply;
+
+        uint256 ratio = rate0 * 1e18 / rate1 * amountB / amountA;
+        lp0Amt = _bal * 1e18 / (ratio + 1e18);
+        lp1Amt = _bal - lp0Amt;
+
+        return (lp0Amt, lp1Amt);
+    }
+
+    // calculate the total underlaying 'want' held by the strat
     function balanceOf() public view returns (uint256) {
         return balanceOfWant() + balanceOfPool();
     }
 
-    // it calculates how much 'want' this contract holds.
+    // calculates how much 'want' this contract holds
     function balanceOfWant() public view returns (uint256) {
         return IERC20(want).balanceOf(address(this));
     }
 
-    // it calculates how much 'want' the strategy has working in the farm.
+    // calculates how much 'want' the strategy has working in the farm
     function balanceOfPool() public view returns (uint256) {
         if (isAura) {
             return IAuraRewardPool(rewardPool).balanceOf(address(this));
@@ -301,7 +352,7 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
 
     // native reward amount for calling harvest
     function callReward() public pure returns (uint256) {
-        return 0; // multiple swap providers with no easy way to estimate native output.
+        return 0; // multiple swap providers with no easy way to estimate native output
     }
 
     function addRewardToken(
@@ -342,26 +393,34 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
     }
 
     function setRoutes(
-        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToInputRoute,
         BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
-        address[] memory _nativeToInputAssets,
-        address[] memory _outputToNativeAssets
+        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToLp0Route,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _lp0ToLp1Route,
+        address[] memory _outputToNativeAssets,
+        address[] memory _nativeToLp0Assets,
+        address[] memory _lp0ToLp1Assets
     ) public onlyOwner {
-        delete nativeToInputRoute;
         delete outputToNativeRoute;
-        delete nativeToInputAssets;
+        delete nativeToLp0Route;
+        delete lp0ToLp1Route;
         delete outputToNativeAssets;
+        delete nativeToLp0Assets;
+        delete lp0ToLp1Assets;
 
-        for (uint i = 0; i < _nativeToInputRoute.length; i++) {
-            nativeToInputRoute.push(_nativeToInputRoute[i]);
+        for (uint i = 0; i < _outputToNativeRoute.length; i++) {
+            outputToNativeRoute.push(_outputToNativeRoute[i]);
         }
-
-        for (uint j = 0; j < _outputToNativeRoute.length; j++) {
-            outputToNativeRoute.push(_outputToNativeRoute[j]);
-        }
-
-        nativeToInputAssets = _nativeToInputAssets;
         outputToNativeAssets = _outputToNativeAssets;
+
+        for (uint j = 0; j < _nativeToLp0Route.length; j++) {
+            nativeToLp0Route.push(_nativeToLp0Route[j]);
+        }
+        nativeToLp0Assets = _nativeToLp0Assets;
+
+        for (uint k = 0; k < _lp0ToLp1Route.length; k++) {
+            lp0ToLp1Route.push(_lp0ToLp1Route[k]);
+        }
+        lp0ToLp1Assets = _lp0ToLp1Assets;
     }
 
     function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
@@ -374,7 +433,7 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         }
     }
 
-    // called as part of strat migration. Sends all the available funds back to the vault.
+    // called as part of strat migration. Sends all the available funds back to the vault
     function retireStrat() external {
         require(msg.sender == vault, "!vault");
 
@@ -388,7 +447,7 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         IERC20(want).transfer(vault, wantBal);
     }
 
-    // pauses deposits and withdraws all funds from third party systems.
+    // pauses deposits and withdraws all funds from third party systems
     function panic() public onlyManager {
         pause();
         if (isAura) {
@@ -420,10 +479,13 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         }
         IERC20(output).safeApprove(unirouter, type(uint).max);
         IERC20(native).safeApprove(unirouter, type(uint).max);
-        if (!input.isComposable) {
-            IERC20(input.input).safeApprove(unirouter, 0);
-            IERC20(input.input).safeApprove(unirouter, type(uint).max);
-        }
+
+        IERC20(lp0).safeApprove(unirouter, 0);
+        IERC20(lp0).safeApprove(unirouter, type(uint).max);
+
+        IERC20(lp1).safeApprove(unirouter, 0);
+        IERC20(lp1).safeApprove(unirouter, type(uint).max);
+
         if (rewardTokens.length != 0) {
             for (uint i; i < rewardTokens.length; ++i) {
                 if (rewards[rewardTokens[i]].assets[0] != address(0)) {
@@ -445,9 +507,8 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         }
         IERC20(output).safeApprove(unirouter, 0);
         IERC20(native).safeApprove(unirouter, 0);
-        if (!input.isComposable) {
-            IERC20(input.input).safeApprove(unirouter, 0);
-        }
+        IERC20(lp0).safeApprove(unirouter, 0);
+        IERC20(lp1).safeApprove(unirouter, 0);
         if (rewardTokens.length != 0) {
             for (uint i; i < rewardTokens.length; ++i) {
                 if (rewards[rewardTokens[i]].assets[0] != address(0)) {
