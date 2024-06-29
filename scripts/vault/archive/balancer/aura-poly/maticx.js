@@ -50,7 +50,7 @@ const strategyParams = {
     ["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 1, 2],
   ],
   secondRewardAssets: [SD, MaticX, MATIC],
-  rewardRoute: [
+  secondRewardRoute: [
     ["0x577f6076e558818a5df21ce4acde9a9623ec0b4c000200000000000000000a64", 0, 1],
     ["0xcd78a20c597e367a4e478a2411ceb790604d7c8f000000000000000000000c22", 1, 2],
   ],

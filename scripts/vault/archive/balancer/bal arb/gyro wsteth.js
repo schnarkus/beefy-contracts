@@ -2,24 +2,24 @@ import hardhat, { ethers, web3 } from "hardhat";
 import { addressBook } from "blockchain-addressbook";
 import vaultV7 from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7.sol/BeefyVaultV7.json";
 import vaultV7Factory from "../../artifacts/contracts/BIFI/vaults/BeefyVaultV7Factory.sol/BeefyVaultV7Factory.json";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraBalancer.sol/StrategyAuraBalancer.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraBalancerGyro.sol/StrategyAuraBalancerGyro.json";
 
 const {
   platforms: { balancer, beefyfinance },
   tokens: {
     BAL: { address: BAL },
     AURA: { address: AURA },
-    WMATIC: { address: WMATIC },
     ETH: { address: ETH },
-    USDC: { address: USDC },
+    ARB: { address: ARB },
+    wstETH: { address: wstETH },
   },
-} = addressBook.polygon;
+} = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0x1DCeA0BfBBe6848F117640D534C9B60f41b9F2A8");
+const want = web3.utils.toChecksumAddress("0x7967FA58B9501600D96bD843173b9334983EE6E6");
 
 const vaultParams = {
-  mooName: "Moo Balancer Polygon WBTC/USDC/ETH",
-  mooSymbol: "mooBalancerPolygonWBTC/USDC/ETH",
+  mooName: "Moo Balancer Gyro Arb wstETH-WETH",
+  mooSymbol: "mooBalancerGyrowstETH-WETH",
   delay: 21600,
 };
 
@@ -29,34 +29,28 @@ const strategyParams = {
   want: want,
   isAura: false,
   pid: 42069,
-  rewardsGauge: "0x527D7DD0316920C1531B6cFBB3134dDE5FeEEaeb",
+  rewardsGauge: "0x96d7C70c80518Ee189CB6ba672FbD22E4fDD9c19",
   balSwapOn: false,
-  inputIsComposable: false,
-  nativeToInputRoute: [
-    ["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 0, 1],
-  ],
-  outputToNativeRoute: [["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 0, 1]],
-  nativeToInput: [WMATIC, ETH],
-  outputToNative: [BAL, WMATIC],
+  nativeToLp0Route: [["0x7967fa58b9501600d96bd843173b9334983ee6e600020000000000000000056e", 0, 1]],
+  lp0ToLp1Route: [["0x7967fa58b9501600d96bd843173b9334983ee6e600020000000000000000056e", 0, 1]],
+  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
+  nativeToLp0Assets: [ETH, wstETH],
+  lp0ToLp1Assets: [wstETH, ETH],
+  outputToNativeAssets: [BAL, ETH],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x8323e081138aac82c2AcbA843602d096B8fC9C8F",
+  strategyImplementation: "0xE550b6B99964d09942DF4315037FF7cf46a8126c",
   extraReward: false,
   secondExtraReward: true,
-  rewardAssets: [AURA, ETH, WMATIC],
+  rewardAssets: [AURA, ETH],
   rewardRoute: [
-    ["0x40e57c0b2b674c8fbe5ba9e1e3bafce9f16f94be000200000000000000000e52", 0, 1],
-    ["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 1, 2],
+    ["0x64abeae398961c10cbb50ef359f1db41fc3129ff000200000000000000000526", 0, 1],
   ],
-  secondRewardAssets: [USDC, ETH, WMATIC],
-  secondRewardRoute: [
-    ["0x1dcea0bfbbe6848f117640d534c9b60f41b9f2a8000100000000000000000ea1", 0, 1],
-    ["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 1, 2],
-  ],
+  secondRewardAssets: [ARB, ETH],
 };
 
 async function main() {
@@ -110,11 +104,12 @@ async function main() {
     strategyParams.pid,
     strategyParams.rewardsGauge,
     strategyParams.balSwapOn,
-    strategyParams.inputIsComposable,
-    strategyParams.nativeToInputRoute,
+    strategyParams.nativeToLp0Route,
+    strategyParams.lp0ToLp1Route,
     strategyParams.outputToNativeRoute,
-    strategyParams.nativeToInput,
-    strategyParams.outputToNative,
+    strategyParams.nativeToLp0Assets,
+    strategyParams.lp0ToLp1Assets,
+    strategyParams.outputToNativeAssets,
     [
       vault,
       strategyParams.unirouter,
@@ -153,13 +148,13 @@ async function main() {
       strategyParams.secondRewardAssets[0],
       [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
       ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"],
-      ethers.utils.solidityPack(["address", "uint24", "address"], [USDC, 500, WMATIC]),
+      ethers.utils.solidityPack(["address", "uint24", "address"], [ARB, 500, ETH]),
       100
     );
     stratInitTx = await stratInitTx.wait();
     stratInitTx.status === 1
-      ? console.log(`USDC Reward Added with tx: ${stratInitTx.transactionHash}`)
-      : console.log(`USDC Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
+      ? console.log(`ARB Reward Added with tx: ${stratInitTx.transactionHash}`)
+      : console.log(`ARB Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
   }
 }
 

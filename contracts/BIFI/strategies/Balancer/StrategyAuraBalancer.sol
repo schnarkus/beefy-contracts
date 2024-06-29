@@ -36,6 +36,7 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
     address public rewardPool;
     uint256 public pid;
     address public rewardsGauge;
+    address public uniswapRouter;
 
     IBalancerVault.SwapKind public swapKind;
     IBalancerVault.FundManagement public funds;
@@ -48,9 +49,10 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
     mapping(address => BeefyBalancerStructs.Reward) public rewards;
     address[] public rewardTokens;
 
-    address public uniswapRouter;
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
+    uint256 public totalLocked;
+    uint256 public constant DURATION = 1 days;
 
     bool public isAura;
     bool public balSwapOn;
@@ -93,13 +95,14 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
             pid = 0;
             rewardPool = address(0);
             rewardsGauge = _rewardsGauge;
-            balSwapOn = _balSwapOn;
+            setBalSwapOn(_balSwapOn);
         }
 
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
 
         setRoutes(_nativeToInputRoute, _outputToNativeRoute, _nativeToInput, _outputToNative);
+        setHarvestOnDeposit(true);
         _giveAllowances();
     }
 
@@ -180,6 +183,7 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
             chargeFees(callFeeRecipient);
             addLiquidity();
             uint256 wantHarvested = balanceOfWant() - before;
+            totalLocked = wantHarvested + lockedProfit();
             deposit();
 
             lastHarvest = block.timestamp;
@@ -271,9 +275,15 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         }
     }
 
+    function lockedProfit() public view returns (uint256) {
+        uint256 elapsed = block.timestamp - lastHarvest;
+        uint256 remaining = elapsed < DURATION ? DURATION - elapsed : 0;
+        return (totalLocked * remaining) / DURATION;
+    }
+
     // calculate the total underlying 'want' held by the strat.
     function balanceOf() public view returns (uint256) {
-        return balanceOfWant() + balanceOfPool();
+        return balanceOfWant() + balanceOfPool() - lockedProfit();
     }
 
     // it calculates how much 'want' this contract holds.
@@ -364,7 +374,11 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         outputToNativeAssets = _outputToNativeAssets;
     }
 
-    function setHarvestOnDeposit(bool _harvestOnDeposit) external onlyManager {
+    function setBalSwapOn(bool _balSwapOn) public onlyOwner {
+        balSwapOn = _balSwapOn;
+    }
+
+    function setHarvestOnDeposit(bool _harvestOnDeposit) public onlyOwner {
         harvestOnDeposit = _harvestOnDeposit;
 
         if (harvestOnDeposit) {

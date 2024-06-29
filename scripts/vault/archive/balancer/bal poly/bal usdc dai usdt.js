@@ -15,11 +15,11 @@ const {
   },
 } = addressBook.polygon;
 
-const want = web3.utils.toChecksumAddress("0x1DCeA0BfBBe6848F117640D534C9B60f41b9F2A8");
+const want = web3.utils.toChecksumAddress("0x4B7586A4F49841447150D3d92d9E9e000f766c30");
 
 const vaultParams = {
-  mooName: "Moo Balancer Polygon WBTC/USDC/ETH",
-  mooSymbol: "mooBalancerPolygonWBTC/USDC/ETH",
+  mooName: "Moo Balancer Polygon USDC/DAI/USDT",
+  mooSymbol: "mooBalancerPolygonUSDC/DAI/USDT",
   delay: 21600,
 };
 
@@ -29,14 +29,16 @@ const strategyParams = {
   want: want,
   isAura: false,
   pid: 42069,
-  rewardsGauge: "0x527D7DD0316920C1531B6cFBB3134dDE5FeEEaeb",
+  rewardsGauge: "0x07dAcD2229824D6Ff928181563745a573b026B3d",
   balSwapOn: false,
-  inputIsComposable: false,
+  inputIsComposable: true,
   nativeToInputRoute: [
     ["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 0, 1],
+    ["0x1dcea0bfbbe6848f117640d534c9b60f41b9f2a8000100000000000000000ea1", 1, 2],
+    ["0x4b7586a4f49841447150d3d92d9e9e000f766c30000000000000000000000e8a", 2, 3]
   ],
   outputToNativeRoute: [["0x0297e37f1873d2dab4487aa67cd56b58e2f27875000100000000000000000002", 0, 1]],
-  nativeToInput: [WMATIC, ETH],
+  nativeToInput: [WMATIC, ETH, USDC, want],
   outputToNative: [BAL, WMATIC],
   unirouter: balancer.router,
   strategist: process.env.STRATEGIST_ADDRESS,
