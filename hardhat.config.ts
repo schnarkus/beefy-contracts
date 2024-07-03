@@ -66,7 +66,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     arbitrum: {
-      url: process.env.ARBITRUM_RPC || "https://endpoints.omniatech.io/v1/arbitrum/one/public",
+      url: process.env.ARBITRUM_RPC || "https://arbitrum.meowrpc.com",
       chainId: 42161,
       accounts,
     },

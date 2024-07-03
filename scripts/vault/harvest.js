@@ -1,7 +1,7 @@
 const hardhat = require("hardhat");
 
 const config = {
-    strategyAddress: "0x48afC015BdcE9949B8e2CF22eEcB25bcD8D4A0a2",
+    strategyAddress: "0x6fA5D602857d24F001735Ebf6349Fa9567A9E7D0",
     strategyAbi: [
         {
             "inputs": [],

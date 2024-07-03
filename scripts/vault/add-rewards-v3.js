@@ -1,33 +1,18 @@
 import { ethers } from "hardhat";
-
 import { addressBook } from "blockchain-addressbook";
-import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraGyroSidechain.sol/StrategyAuraGyroSidechain.json";
+import stratAbi from "../../artifacts/contracts/BIFI/strategies/Balancer/StrategyAuraBalancerGyro.sol/StrategyAuraBalancerGyro.json";
 
 const {
     tokens: {
-        ETH: { address: ETH },
         ARB: { address: ARB },
     },
 } = addressBook.arbitrum;
 
 async function main() {
-    const contractAddress = "0x60240Fa2a29c4ee646F03d5495038F2a6e969b80"; // Contract address
+    const contractAddress = "0x791B597a954475CA1B9288E67Bd4C3a4F9707F83"; // Contract address
     const contract = await ethers.getContractAt(stratAbi.abi, contractAddress); // Get contract instance
 
-    // Add reward tokens
-    const rewardToken = ARB; // Address of the reward token
-    const rewardRoute = [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]]; // Route for swapping rewards
-    const rewardAssets = ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"]; // Reward assets
-    const additionalData = ethers.utils.solidityPack(["address", "uint24", "address"], [ARB, 500, ETH]); // uint24 is for fee on the v3 lp
-    const weight = 100; // Weight for the reward token
-
-    const addRewardTx = await contract.addRewardToken(
-        rewardToken,
-        rewardRoute,
-        rewardAssets,
-        additionalData,
-        weight
-    );
+    const addRewardTx = await contract.addReward(ARB); // Add ARB as a reward token
 
     // Wait for the transaction to be mined
     const receipt = await addRewardTx.wait();

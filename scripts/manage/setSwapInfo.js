@@ -1,77 +1,41 @@
 import hardhat, { ethers, web3 } from "hardhat";
-import swapperAbi from "../../artifacts/contracts/BIFI/infra/SimpleSwapper.sol/SimpleSwapper.json";
+import swapperAbi from "../../artifacts/contracts/BIFI/infra/BeefySwapper.sol/BeefySwapper.json";
 import UniswapV3RouterAbi from "../../data/abi/UniswapV3Router.json";
 import BalancerVaultAbi from "../../data/abi/BalancerVault.json";
-import VelodromeRouterAbi from "../../data/abi/VelodromeRouter.json";
 import { addressBook } from "blockchain-addressbook";
-
-const CurveLPAbi = [
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_amounts",
-        "type": "uint256[2]"
-      },
-      {
-        "name": "_min_mint_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "add_liquidity",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-];
 
 const {
   platforms: { beefyfinance },
   tokens: {
-    WMATIC: { address: WMATIC },
+    ARB: { address: ARB },
+    BAL: { address: BAL },
+    WETH: { address: WETH },
     USDC: { address: USDC },
-    USDT: { address: USDT },
-    pUSDCe: { address: pUSDCe },
   },
-} = addressBook.polygon;
+} = addressBook.arbitrum;
 
 const ethers = hardhat.ethers;
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
 const uint256Max = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 const int256Max = "57896044618658097711785492504343953926634992332820282019728792003956564819967";
-const beefyfinanceSwapper = "0x2604039c6FE27b514408dB247de3a1d8BE461372";
+const beefyfinanceSwapper = "0xdc64694F820853be3b0c753f282dC3EF424137ce";
 
 const uniswapV3Router = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
-const uniswapV2Router = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
-const velodromeRouter = "0x0000000000000000000000000000000000000000";
 const balancerVault = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
-const MAILP = "0x53c38755748745e2dd7d0a136fbcc9fb1a5b83b2";
 
 const config = {
   type: "uniswapV3",
   uniswapV3: {
-    path: [[WMATIC, USDT, 500], [USDT, pUSDCe, 100]],
+    path: [[WETH, USDC, 500]],
     router: uniswapV3Router,
-  },
-  uniswapV2: {
-    path: [USDC, WMATIC],
-    router: uniswapV2Router,
   },
   balancer: {
     path: [
-      [USDC, WMATIC, "0x03cd191f589d12b0582a99808cf19851e468e6b500010000000000000000000a"]
+      [BAL, WETH, "0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001"],
     ],
     router: balancerVault,
   },
-  solidly: {
-    path: [[USDC, WMATIC, false, nullAddress]],
-    router: velodromeRouter,
-  },
-  curve: {
-    router: MAILP
-  }
 };
 
 async function main() {
@@ -79,17 +43,8 @@ async function main() {
     case 'uniswapV3':
       await uniswapV3();
       break;
-    case 'uniswapV2':
-      await uniswapV2();
-      break;
     case 'balancer':
       await balancer();
-      break;
-    case 'solidly':
-      await solidly();
-      break;
-    case 'curve':
-      await curve();
       break;
   }
 }
@@ -135,34 +90,6 @@ async function uniswapV3() {
   );
 }
 
-async function uniswapV2() {
-  const router = await ethers.getContractAt(UniswapV2RouterAbi, config.uniswapV2.router);
-  const txData = await router.populateTransaction.swapExactTokensForTokens(
-    0,
-    0,
-    config.uniswapV2.path,
-    beefyfinanceSwapper,
-    uint256Max
-  );
-  const amountIndex = 4;
-  const minIndex = 36;
-  const minAmountSign = 0;
-
-  const swapInfo = [
-    config.router,
-    txData.data,
-    amountIndex,
-    minIndex,
-    minAmountSign
-  ];
-
-  /*await setSwapInfo(
-    config.uniswapV2.path[0],
-    config.uniswapV2.path[config.uniswapV2.path.length - 1],
-    swapInfo
-  );*/
-}
-
 async function balancer() {
   const router = await ethers.getContractAt(BalancerVaultAbi, config.balancer.router);
   const swapKind = 0;
@@ -192,71 +119,16 @@ async function balancer() {
   const minAmountSign = -1;
 
   const swapInfo = [
-    config.router,
+    config.balancer.router,
     txData.data,
     amountIndex,
     minIndex,
     minAmountSign
   ];
-
-  /*await setSwapInfo(
-    config.uniswapV2.path[0],
-    config.uniswapV2.path[config.uniswapV2.path.length - 1],
-    swapInfo
-  );*/
-}
-
-async function solidly() {
-  const router = await ethers.getContractAt(VelodromeRouterAbi, config.solidly.router);
-  const txData = await router.populateTransaction.swapExactTokensForTokens(3, 4, config.solidly.path, beefyfinanceSwapper, uint256Max);
-  const amountIndex = 4;
-  const minIndex = 36;
-  const minAmountSign = 0;
-
-  const swapInfo = [
-    config.solidly.router,
-    txData.data,
-    amountIndex,
-    minIndex,
-    minAmountSign
-  ];
-
-  console.log(txData.data);
-
-  /*await setSwapInfo(
-    config.solidly.path[0][0],
-    config.solidly.path[config.solidly.path.length - 1][1],
-    swapInfo
-  );*/
-}
-
-async function curve() {
-  const amounts = [
-    0,
-    uint256Max
-  ];
-  const minMintAmount = 0
-
-  const router = await ethers.getContractAt(CurveLPAbi, config.curve.router);
-  const txData = await router.populateTransaction.add_liquidity(amounts, minMintAmount);
-
-  const amountIndex = 36;
-  const minIndex = 68;
-  const minAmountSign = 0;
-
-  const swapInfo = [
-    config.curve.router,
-    txData.data,
-    amountIndex,
-    // minIndex,
-    // minAmountSign
-  ];
-
-  console.log(txData.data);
 
   await setSwapInfo(
-    pUSDCe,
-    MAILP,
+    config.balancer.path[0],
+    config.balancer.path[config.balancer.path.length - 1],
     swapInfo
   );
 }
