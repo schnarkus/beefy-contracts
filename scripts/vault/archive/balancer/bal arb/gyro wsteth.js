@@ -18,8 +18,8 @@ const {
 const want = web3.utils.toChecksumAddress("0x7967FA58B9501600D96bD843173b9334983EE6E6");
 
 const vaultParams = {
-  mooName: "Moo Balancer Gyro Arb wstETH-WETH",
-  mooSymbol: "mooBalancerGyrowstETH-WETH",
+  mooName: "Dummy",
+  mooSymbol: "Dummy",
   delay: 21600,
 };
 
@@ -27,8 +27,8 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  isAura: false,
-  pid: 42069,
+  isAura: true,
+  pid: 68,
   rewardsGauge: "0x96d7C70c80518Ee189CB6ba672FbD22E4fDD9c19",
   balSwapOn: false,
   nativeToLp0Route: [["0x7967fa58b9501600d96bd843173b9334983ee6e600020000000000000000056e", 0, 1]],
@@ -43,8 +43,8 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xE550b6B99964d09942DF4315037FF7cf46a8126c",
-  extraReward: false,
+  strategyImplementation: "0x09625F157e8ce614787EB5AC0bbEb5C330056BE5",
+  extraReward: true,
   secondExtraReward: true,
   rewardAssets: [AURA, ETH],
   rewardRoute: [
