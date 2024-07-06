@@ -44,7 +44,7 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0x095870bEB5598B4379e37fE0445B50946A98eCe1",
+  strategyImplementation: "0xE054BC61d2Ef0935c02D8a31d1ee5780bB8eaeD9",
 };
 
 async function main() {

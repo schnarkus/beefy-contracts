@@ -81,6 +81,7 @@
     "input": "hardhat run scripts/vault/curve-input.js --network polygon",
     "swapinfo": "hardhat run scripts/manage/setSwapInfo.js --network arbitrum",
     "harvest": "hardhat run scripts/vault/harvest.js --network arbitrum",
+    "gyro": "hardhat run scripts/vault/gyro.js --network arbitrum",
     "switch": "hardhat run scripts/vault/switch.js --network arbitrum",
     "hod": "hardhat run scripts/vault/hod.js --network base",
     "panic": "hardhat run scripts/vault/panic.js --network base",
@@ -91,8 +92,7 @@
     "setRoutes": "hardhat run scripts/vault/setRoutes.js --network base",
     "token": "hardhat run scripts/vault/rewardTokens.js --network base",
     "vaults": "hardhat run scripts/vault/vaults.js",
-    "lsapr": "hardhat run scripts/vault/lsapr.js",
-    "gyro": "hardhat run scripts/vault/deploy-gyro-strat-type.js --network optimism"
+    "lsapr": "hardhat run scripts/vault/lsapr.js"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",

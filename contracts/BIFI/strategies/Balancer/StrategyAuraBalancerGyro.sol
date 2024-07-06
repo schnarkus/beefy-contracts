@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin-4/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/curve/IRewardsGauge.sol";
-import "../../interfaces/aura/IAuraBooster.sol";
-import "../../interfaces/aura/IAuraRewardPool.sol";
-import "../../interfaces/beefy/IBeefySwapper.sol";
 import "../../interfaces/beethovenx/IBalancerVault.sol";
+import "../../interfaces/aura/IAuraRewardPool.sol";
+import "../../interfaces/aura/IAuraBooster.sol";
+import "../../interfaces/curve/IRewardsGauge.sol";
 import "../Common/StratFeeManagerInitializable.sol";
 import "./BalancerActionsLib.sol";
 import "./BeefyBalancerStructs.sol";
+import "../../utils/UniV3Actions.sol";
 
 interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
@@ -23,12 +23,6 @@ interface IMinter {
     function mint(address gauge) external;
 }
 
-interface IAaveWrapper {
-    function deposit(uint256 amount, address reciever) external;
-
-    function convertToAssets(uint256 amount) external returns (uint256);
-}
-
 contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
@@ -38,38 +32,38 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
     address public native;
     address public lp0;
     address public lp1;
-    address public constant usdc = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
-    address public constant staticAaveUSDC = 0x7CFaDFD5645B50bE87d546f42699d863648251ad;
 
     // Third party contracts
+    address public booster;
     address public rewardPool;
+    address public uniswapRouter;
     uint256 public pid;
     address public rewardsGauge;
-    address public constant balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
-    address public constant booster = 0x98Ef32edd24e2c92525E59afc4475C1242a30184;
-
-    // Gauge details
-    bool public isAura;
-    bool public balSwapOn;
 
     // Balancer Router set up
     IBalancerVault.SwapKind public swapKind;
     IBalancerVault.FundManagement public funds;
 
     // Swap details
-    bool public useAave;
-    uint256 public aaveIndex;
+    BeefyBalancerStructs.BatchSwapStruct[] public nativeToLp0Route;
     BeefyBalancerStructs.BatchSwapStruct[] public lp0ToLp1Route;
+    BeefyBalancerStructs.BatchSwapStruct[] public outputToNativeRoute;
+    address[] public nativeToLp0Assets;
     address[] public lp0ToLp1Assets;
+    address[] public outputToNativeAssets;
 
     // Our needed reward token information
-    address[] public rewards;
+    mapping(address => BeefyBalancerStructs.Reward) public rewards;
+    address[] public rewardTokens;
 
     // Some needed state variables
     bool public harvestOnDeposit;
     uint256 public lastHarvest;
     uint256 public totalLocked;
     uint256 public constant DURATION = 1 hours;
+
+    bool public isAura;
+    bool public balSwapOn;
 
     event StratHarvest(address indexed harvester, uint256 indexed wantHarvested, uint256 indexed tvl);
     event Deposit(uint256 indexed tvl);
@@ -82,26 +76,24 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         uint256 _pid,
         address _rewardsGauge,
         bool _balSwapOn,
-        bool _useAave,
-        uint256 _aaveIndex,
-        address _native,
-        address _output,
-        address[] memory _lp0ToLp1Assets,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToLp0Route,
         BeefyBalancerStructs.BatchSwapStruct[] memory _lp0ToLp1Route,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
+        address[] memory _nativeToLp0Assets,
+        address[] memory _lp0ToLp1Assets,
+        address[] memory _outputToNativeAssets,
         CommonAddresses calldata _commonAddresses
     ) public initializer {
         __StratFeeManager_init(_commonAddresses);
 
         want = _want;
         isAura = _isAura;
-        useAave = _useAave;
-        aaveIndex = _aaveIndex;
-
-        output = _output;
-        native = _native;
+        booster = address(0x98Ef32edd24e2c92525E59afc4475C1242a30184);
+        output = _outputToNativeAssets[0];
+        native = _nativeToLp0Assets[0];
         lp0 = _lp0ToLp1Assets[0];
         lp1 = _lp0ToLp1Assets[_lp0ToLp1Assets.length - 1];
-        setRoute(_lp0ToLp1Route, _lp0ToLp1Assets);
+        uniswapRouter = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
         if (isAura) {
             pid = _pid;
@@ -118,6 +110,14 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         swapKind = IBalancerVault.SwapKind.GIVEN_IN;
         funds = IBalancerVault.FundManagement(address(this), false, payable(address(this)), false);
 
+        setRoutes(
+            _outputToNativeRoute,
+            _nativeToLp0Route,
+            _lp0ToLp1Route,
+            _outputToNativeAssets,
+            _nativeToLp0Assets,
+            _lp0ToLp1Assets
+        );
         setHarvestOnDeposit(true);
         _giveAllowances();
     }
@@ -209,14 +209,47 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
 
     function swapRewardsToNative() internal {
         uint256 outputBal = IERC20(output).balanceOf(address(this));
-        if (outputBal > 0) IBeefySwapper(unirouter).swap(output, native, outputBal);
+        if (outputBal > 0) {
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                outputToNativeRoute,
+                outputBal
+            );
+            BalancerActionsLib.balancerSwap(
+                unirouter,
+                swapKind,
+                _swaps,
+                outputToNativeAssets,
+                funds,
+                int256(outputBal)
+            );
+        }
 
-        // convert additional rewards
-        if (rewards.length != 0) {
-            for (uint i; i < rewards.length; i++) {
-                address reward = rewards[i];
-                uint256 toNative = IERC20(reward).balanceOf(address(this));
-                if (toNative > 0) IBeefySwapper(unirouter).swap(reward, native, toNative);
+        // extras
+        for (uint i; i < rewardTokens.length; ++i) {
+            uint bal = IERC20(rewardTokens[i]).balanceOf(address(this));
+            if (bal >= rewards[rewardTokens[i]].minAmount) {
+                if (rewards[rewardTokens[i]].assets[0] != address(0)) {
+                    BeefyBalancerStructs.BatchSwapStruct[] memory swapInfo = new BeefyBalancerStructs.BatchSwapStruct[](
+                        rewards[rewardTokens[i]].assets.length - 1
+                    );
+                    for (uint j; j < rewards[rewardTokens[i]].assets.length - 1; ++j) {
+                        swapInfo[j] = rewards[rewardTokens[i]].swapInfo[j];
+                    }
+                    IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                        swapInfo,
+                        bal
+                    );
+                    BalancerActionsLib.balancerSwap(
+                        unirouter,
+                        swapKind,
+                        _swaps,
+                        rewards[rewardTokens[i]].assets,
+                        funds,
+                        int256(bal)
+                    );
+                } else {
+                    UniV3Actions.swapV3WithDeadline(uniswapRouter, rewards[rewardTokens[i]].routeToNative, bal);
+                }
             }
         }
     }
@@ -241,19 +274,15 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
     // adds liquidity to AMM and gets more LP tokens
     function addLiquidity() internal {
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
-        if (useAave && nativeBal > 0) {
-            IBeefySwapper(unirouter).swap(native, usdc, nativeBal);
-            IAaveWrapper(staticAaveUSDC).deposit(IERC20(usdc).balanceOf(address(this)), address(this));
-            nativeBal = IERC20(staticAaveUSDC).balanceOf(address(this));
-        }
-
-        address swapToken = useAave ? staticAaveUSDC : native;
-
         bytes32 poolId = IBalancerPool(want).getPoolId();
-        (address[] memory lpTokens, , ) = IBalancerVault(balancerVault).getPoolTokens(poolId);
+        (address[] memory lpTokens, , ) = IBalancerVault(unirouter).getPoolTokens(poolId);
 
-        if (lpTokens[0] != swapToken) {
-            IBeefySwapper(unirouter).swap(swapToken, lp0, nativeBal);
+        if (lpTokens[0] != native) {
+            IBalancerVault.BatchSwapStep[] memory _swaps = BalancerActionsLib.buildSwapStructArray(
+                nativeToLp0Route,
+                nativeBal
+            );
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, nativeToLp0Assets, funds, int256(nativeBal));
         }
 
         if (nativeBal > 0) {
@@ -264,10 +293,10 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
                 lp0ToLp1Route,
                 lp1Amt
             );
-            BalancerActionsLib.balancerSwap(balancerVault, swapKind, _swaps, lp0ToLp1Assets, funds, int256(lp1Amt));
+            BalancerActionsLib.balancerSwap(unirouter, swapKind, _swaps, lp0ToLp1Assets, funds, int256(lp1Amt));
 
             BalancerActionsLib.multiJoin(
-                balancerVault,
+                unirouter,
                 want,
                 poolId,
                 lpTokens[0],
@@ -278,27 +307,17 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         }
     }
 
-    function _calcSwapAmount(uint256 _bal) private returns (uint256 lp0Amt, uint256 lp1Amt) {
+    function _calcSwapAmount(uint256 _bal) private view returns (uint256 lp0Amt, uint256 lp1Amt) {
         lp0Amt = _bal / 2;
         lp1Amt = _bal - lp0Amt;
 
         (uint256 rate0, uint256 rate1) = IBalancerPool(want).getTokenRates();
 
-        (, uint256[] memory balances, ) = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(want).getPoolId());
+        (, uint256[] memory balances, ) = IBalancerVault(unirouter).getPoolTokens(IBalancerPool(want).getPoolId());
         uint256 supply = IERC20(want).totalSupply();
 
-        uint256 amountA;
-        uint256 amountB;
-        if (aaveIndex == 0) {
-            amountA = (IAaveWrapper(staticAaveUSDC).convertToAssets(balances[0]) * 1e18) / supply;
-            amountB = (balances[1] * 1e18) / supply;
-        } else if (aaveIndex == 1) {
-            amountA = (balances[0] * 1e18) / supply;
-            amountB = (IAaveWrapper(staticAaveUSDC).convertToAssets(balances[1]) * 1e18) / supply;
-        } else {
-            amountA = (balances[0] * 1e18) / supply;
-            amountB = (balances[1] * 1e18) / supply;
-        }
+        uint256 amountA = (balances[0] * 1e18) / supply;
+        uint256 amountB = (balances[1] * 1e18) / supply;
 
         uint256 ratio = rate0 * 1e18 / rate1 * amountB / amountA;
         lp0Amt = _bal * 1e18 / (ratio + 1e18);
@@ -341,27 +360,72 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         }
     }
 
+    // native reward amount for calling harvest
     function callReward() public pure returns (uint256) {
-        return 0;
+        return 0; // multiple swap providers with no easy way to estimate native output
     }
 
-    function addReward(address _reward) external onlyOwner {
-        IERC20(_reward).safeApprove(unirouter, type(uint).max);
-        rewards.push(_reward);
+    function addRewardToken(
+        address _token,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _swapInfo,
+        address[] memory _assets,
+        bytes calldata _routeToNative,
+        uint _minAmount
+    ) external onlyOwner {
+        require(_token != want, "!want");
+        require(_token != native, "!native");
+        if (_assets[0] != address(0)) {
+            IERC20(_token).safeApprove(unirouter, 0);
+            IERC20(_token).safeApprove(unirouter, type(uint).max);
+        } else {
+            IERC20(_token).safeApprove(uniswapRouter, 0);
+            IERC20(_token).safeApprove(uniswapRouter, type(uint).max);
+        }
+
+        rewards[_token].assets = _assets;
+        rewards[_token].routeToNative = _routeToNative;
+        rewards[_token].minAmount = _minAmount;
+
+        for (uint i; i < _swapInfo.length; ++i) {
+            rewards[_token].swapInfo[i].poolId = _swapInfo[i].poolId;
+            rewards[_token].swapInfo[i].assetInIndex = _swapInfo[i].assetInIndex;
+            rewards[_token].swapInfo[i].assetOutIndex = _swapInfo[i].assetOutIndex;
+        }
+        rewardTokens.push(_token);
     }
 
-    function removeLastReward() external onlyManager {
-        address reward = rewards[rewards.length - 1];
-        IERC20(reward).safeApprove(unirouter, 0);
-        rewards.pop();
+    function resetRewardTokens() external onlyManager {
+        for (uint i; i < rewardTokens.length; ++i) {
+            delete rewards[rewardTokens[i]];
+        }
+
+        delete rewardTokens;
     }
 
-    function setRoute(
+    function setRoutes(
+        BeefyBalancerStructs.BatchSwapStruct[] memory _outputToNativeRoute,
+        BeefyBalancerStructs.BatchSwapStruct[] memory _nativeToLp0Route,
         BeefyBalancerStructs.BatchSwapStruct[] memory _lp0ToLp1Route,
+        address[] memory _outputToNativeAssets,
+        address[] memory _nativeToLp0Assets,
         address[] memory _lp0ToLp1Assets
     ) public onlyOwner {
+        delete outputToNativeRoute;
+        delete nativeToLp0Route;
         delete lp0ToLp1Route;
+        delete outputToNativeAssets;
+        delete nativeToLp0Assets;
         delete lp0ToLp1Assets;
+
+        for (uint i = 0; i < _outputToNativeRoute.length; i++) {
+            outputToNativeRoute.push(_outputToNativeRoute[i]);
+        }
+        outputToNativeAssets = _outputToNativeAssets;
+
+        for (uint j = 0; j < _nativeToLp0Route.length; j++) {
+            nativeToLp0Route.push(_nativeToLp0Route[j]);
+        }
+        nativeToLp0Assets = _nativeToLp0Assets;
 
         for (uint k = 0; k < _lp0ToLp1Route.length; k++) {
             lp0ToLp1Route.push(_lp0ToLp1Route[k]);
@@ -427,24 +491,24 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         } else {
             IERC20(want).safeApprove(rewardsGauge, type(uint).max);
         }
-
         IERC20(output).safeApprove(unirouter, type(uint).max);
         IERC20(native).safeApprove(unirouter, type(uint).max);
 
-        if (useAave) {
-            IERC20(usdc).safeApprove(staticAaveUSDC, type(uint).max);
-            IERC20(staticAaveUSDC).safeApprove(balancerVault, type(uint).max);
-        }
+        IERC20(lp0).safeApprove(unirouter, 0);
+        IERC20(lp0).safeApprove(unirouter, type(uint).max);
 
-        IERC20(lp0).safeApprove(balancerVault, 0);
-        IERC20(lp0).safeApprove(balancerVault, type(uint).max);
+        IERC20(lp1).safeApprove(unirouter, 0);
+        IERC20(lp1).safeApprove(unirouter, type(uint).max);
 
-        IERC20(lp1).safeApprove(balancerVault, 0);
-        IERC20(lp1).safeApprove(balancerVault, type(uint).max);
-
-        if (rewards.length != 0) {
-            for (uint i; i < rewards.length; i++) {
-                IERC20(rewards[i]).safeApprove(unirouter, 0);
+        if (rewardTokens.length != 0) {
+            for (uint i; i < rewardTokens.length; ++i) {
+                if (rewards[rewardTokens[i]].assets[0] != address(0)) {
+                    IERC20(rewardTokens[i]).safeApprove(unirouter, 0);
+                    IERC20(rewardTokens[i]).safeApprove(unirouter, type(uint).max);
+                } else {
+                    IERC20(rewardTokens[i]).safeApprove(uniswapRouter, 0);
+                    IERC20(rewardTokens[i]).safeApprove(uniswapRouter, type(uint).max);
+                }
             }
         }
     }
@@ -455,21 +519,17 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         } else {
             IERC20(want).safeApprove(rewardsGauge, 0);
         }
-
         IERC20(output).safeApprove(unirouter, 0);
         IERC20(native).safeApprove(unirouter, 0);
-
-        if (useAave) {
-            IERC20(usdc).safeApprove(staticAaveUSDC, 0);
-            IERC20(staticAaveUSDC).safeApprove(balancerVault, 0);
-        }
-
-        IERC20(lp0).safeApprove(balancerVault, 0);
-        IERC20(lp1).safeApprove(balancerVault, 0);
-
-        if (rewards.length != 0) {
-            for (uint i; i < rewards.length; i++) {
-                IERC20(rewards[i]).safeApprove(unirouter, type(uint).max);
+        IERC20(lp0).safeApprove(unirouter, 0);
+        IERC20(lp1).safeApprove(unirouter, 0);
+        if (rewardTokens.length != 0) {
+            for (uint i; i < rewardTokens.length; ++i) {
+                if (rewards[rewardTokens[i]].assets[0] != address(0)) {
+                    IERC20(rewardTokens[i]).safeApprove(unirouter, 0);
+                } else {
+                    IERC20(rewardTokens[i]).safeApprove(uniswapRouter, 0);
+                }
             }
         }
     }
