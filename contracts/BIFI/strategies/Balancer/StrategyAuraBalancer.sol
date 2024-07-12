@@ -374,11 +374,11 @@ contract StrategyAuraBalancer is StratFeeManagerInitializable {
         outputToNativeAssets = _outputToNativeAssets;
     }
 
-    function setBalSwapOn(bool _balSwapOn) public onlyOwner {
+    function setBalSwapOn(bool _balSwapOn) public onlyManager {
         balSwapOn = _balSwapOn;
     }
 
-    function setHarvestOnDeposit(bool _harvestOnDeposit) public onlyOwner {
+    function setHarvestOnDeposit(bool _harvestOnDeposit) public onlyManager {
         harvestOnDeposit = _harvestOnDeposit;
 
         if (harvestOnDeposit) {

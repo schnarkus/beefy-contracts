@@ -433,11 +433,11 @@ contract StrategyAuraBalancerGyro is StratFeeManagerInitializable {
         lp0ToLp1Assets = _lp0ToLp1Assets;
     }
 
-    function setBalSwapOn(bool _balSwapOn) public onlyOwner {
+    function setBalSwapOn(bool _balSwapOn) public onlyManager {
         balSwapOn = _balSwapOn;
     }
 
-    function setHarvestOnDeposit(bool _harvestOnDeposit) public onlyOwner {
+    function setHarvestOnDeposit(bool _harvestOnDeposit) public onlyManager {
         harvestOnDeposit = _harvestOnDeposit;
 
         if (harvestOnDeposit) {
