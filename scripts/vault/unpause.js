@@ -2,9 +2,7 @@ const hardhat = require("hardhat");
 
 const config = {
     targetAddresses: [
-        '0x2706d38D63F1D3c3FDb8bd3d4D34cCDFf88161bB',
-        '0x95e24537456e5A090B43A6aDe16795F718bDADFB',
-        '0x2B4E2c73D82F1c489C15ac113D888B126D1a12F6',
+        '0xD84f2DDC1C9789109e810e8f24c582c6Fb630368',
     ],
     abi: [
         {

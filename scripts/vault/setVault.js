@@ -2,7 +2,7 @@ const hardhat = require("hardhat");
 
 const config = {
     targetAddresses: [
-        '0x2B4E2c73D82F1c489C15ac113D888B126D1a12F6'
+        '0xD84f2DDC1C9789109e810e8f24c582c6Fb630368'
     ],
     abi: [
         {
@@ -18,7 +18,7 @@ const config = {
 async function main() {
     await hardhat.run("compile");
 
-    const _vaultAddress = '0xc52393b27FeE4355Fe6a5DC92D25BC2Ed1B418Cb';
+    const _vaultAddress = '0xA9Fa0C33cE278952309229FbE202A5E6108491B0';
 
     for (const address of config.targetAddresses) {
         try {

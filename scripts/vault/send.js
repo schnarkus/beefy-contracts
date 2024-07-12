@@ -1,11 +1,15 @@
 const { ethers } = require('hardhat');
+import { addressBook } from "blockchain-addressbook";
+
+const {
+    platforms: { beefyfinance },
+} = addressBook.arbitrum;
 
 const tokenAddresses = [
-    '0x60240Fa2a29c4ee646F03d5495038F2a6e969b80',
-    '0x39996402270c1Ec646004C4E9e44189669E5f8D2',
+    '0xD84f2DDC1C9789109e810e8f24c582c6Fb630368',
 ];
 
-const recipient = '0x6d28afD25a1FBC5409B1BeFFf6AEfEEe2902D89F';
+const recipient = beefyfinance.strategyOwner;
 
 async function main() {
     const [deployer] = await ethers.getSigners();
