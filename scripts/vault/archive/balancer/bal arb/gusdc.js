@@ -19,8 +19,8 @@ const {
 const want = web3.utils.toChecksumAddress("0xE8a6026365254f779b6927f00f8724EA1B8aE5E0");
 
 const vaultParams = {
-  mooName: "Moo Balancer Arb USDC-gUSDC",
-  mooSymbol: "mooBalancerArbUSDC-gUSDC",
+  mooName: "Upgrade Arb USDC-gUSDC",
+  mooSymbol: "UpgradeArbUSDC-gUSDC",
   delay: 21600,
 };
 
@@ -28,8 +28,8 @@ const bytes0 = "0x00000000000000000000000000000000000000000000000000000000000000
 
 const strategyParams = {
   want: want,
-  isAura: false,
-  pid: 42069,
+  isAura: true,
+  pid: 76,
   rewardsGauge: "0x0CE9489bBD4bfA0Da7b5bb06E4dFa7a5947F76e8",
   balSwapOn: false,
   inputIsComposable: true,
@@ -47,8 +47,8 @@ const strategyParams = {
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xB5Da1EB583c8B3eD572512e783eDF11521bD1d94",
-  extraReward: false,
+  strategyImplementation: "0xA13FA08c6A0fD2BC26EBd8af9cb684EA9bd49Bfc",
+  extraReward: true,
   secondExtraReward: true,
   rewardAssets: [AURA, ETH],
   rewardRoute: [
