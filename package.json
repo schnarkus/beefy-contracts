@@ -33,7 +33,7 @@
     "test:harvester": "hardhat test --network localhost test/infra/BeefyAutoHarvester.test.ts",
     "deploy:ichi": "hardhat run scripts/vault/deploy-ichi-strat.js --network bsc",
     "deploy:chef": "hardhat run scripts/vault/deploy-generic-chef-strat.ts --network",
-    "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.js --network optimism",
+    "deploy:balancer": "hardhat run scripts/vault/deploy-balancer-strat-type.js --network arbitrum",
     "deploy:aura": "hardhat run scripts/vault/deploy-balancer-strat-eth.ts --network",
     "deploy:bifiMaxi": "hardhat run scripts/vault/deploy-bifi-maxi.js --network",
     "deploy:beam": "hardhat run scripts/vault/deploy-stableswap.js --network moonbeam",
@@ -52,7 +52,7 @@
     "deploy:chain": "hardhat run scripts/infra/deployChain.js --network",
     "deploy:registry": "hardhat run scripts/infra/deployRegistry.ts --network",
     "deploy:autoHarvester": "hardhat run scripts/infra/deployAutoHarvester.ts --network",
-    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network optimism",
+    "deploy:contract": "hardhat run scripts/infra/deployContract.js --network arbitrum",
     "init:contract": "hardhat run scripts/vault/deploy-single-chef-strat.js --network polygon",
     "deposit": "hardhat run scripts/vault/deposit.js --network optimism",
     "stake": "hardhat run scripts/vault/stake.js --network optimism",
@@ -92,7 +92,9 @@
     "setRoutes": "hardhat run scripts/vault/setRoutes.js --network arbitrum",
     "token": "hardhat run scripts/vault/rewardTokens.js --network arbitrum",
     "vaults": "hardhat run scripts/vault/vaults.js",
-    "lsapr": "hardhat run scripts/vault/lsapr.js"
+    "lsapr": "hardhat run scripts/vault/lsapr.js",
+    "query": "hardhat run scripts/vault/query.js --network arbitrum",
+    "url": "hardhat run scripts/vault/bal-url.js --network arbitrum"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.2.1",

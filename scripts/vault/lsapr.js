@@ -2,10 +2,10 @@ const fetch = require('node-fetch');
 
 async function getAdjustedAPR() {
     try {
-        const response = await fetch('https://www.etherfi.bid/api/etherfi/apr');
+        const response = await fetch('https://app.ethena.fi/api/yields/protocol-and-staking-yield');
         const data = await response.json();
-        const latestAPR = data.latest_aprs[0];
-        const lsAprFactor = 0.01;
+        const latestAPR = data.stakingYield.value;
+        const lsAprFactor = 1
         const adjustedAPR = (latestAPR * lsAprFactor).toString();
         return adjustedAPR;
     } catch (error) {

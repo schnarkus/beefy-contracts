@@ -16,13 +16,13 @@ const {
   },
 } = addressBook.arbitrum;
 
-const want = web3.utils.toChecksumAddress("0xdfa752ca3fF49d4B6dBE08E2d5a111f51773D395");
+const want = web3.utils.toChecksumAddress("0x59743f1812bb85Db83e9e4EE061D124AAa642900");
 
 const FOURPOOL = web3.utils.toChecksumAddress("0x423A1323c871aBC9d89EB06855bF5347048Fc4A5");
 
 const vaultParams = {
-  mooName: "Moo Aura Arb FRAX-sFRAX",
-  mooSymbol: "mooAuraArbFRAX-sFRAX",
+  mooName: "Moo Aura Arb sUSDe-sFRAX",
+  mooSymbol: "mooAuraArbsUSDe-sFRAX",
   delay: 21600,
 };
 
@@ -32,7 +32,7 @@ const zeroAddress = '0x0000000000000000000000000000000000000000';
 const strategyParams = {
   want: want,
   isAura: true,
-  pid: 48,
+  pid: 58,
   rewardsGauge: zeroAddress,
   balSwapOn: false,
   inputIsComposable: true,
@@ -40,7 +40,7 @@ const strategyParams = {
     ["0x64541216bafffeec8ea535bb71fbc927831d0595000100000000000000000002", 0, 1],
     ["0x423a1323c871abc9d89eb06855bf5347048fc4a5000000000000000000000496", 1, 2],
     ["0x2ce4457acac29da4736ae6f5cd9f583a6b335c270000000000000000000004dc", 2, 3],
-    ["0xdfa752ca3ff49d4b6dbe08e2d5a111f51773d3950000000000000000000004e8", 3, 4],
+    ["0x59743f1812bb85db83e9e4ee061d124aaa64290000000000000000000000052b", 3, 4],
   ],
   outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
   nativeToInput: [ETH, arbUSDCe, FOURPOOL, sFRAX, want],
