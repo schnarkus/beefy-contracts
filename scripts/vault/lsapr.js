@@ -2,10 +2,10 @@ const fetch = require('node-fetch');
 
 async function getAdjustedAPR() {
     try {
-        const response = await fetch('https://app.ethena.fi/api/yields/protocol-and-staking-yield');
+        const response = await fetch('https://api.angle.money/v2/savings?chainId=100');
         const data = await response.json();
-        const latestAPR = data.stakingYield.value;
-        const lsAprFactor = 1
+        const latestAPR = data.EURA.apy;
+        const lsAprFactor = 100
         const adjustedAPR = (latestAPR * lsAprFactor).toString();
         return adjustedAPR;
     } catch (error) {
