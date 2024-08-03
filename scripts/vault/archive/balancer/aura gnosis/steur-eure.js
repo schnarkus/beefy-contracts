@@ -9,18 +9,19 @@ const {
   tokens: {
     BAL: { address: BAL },
     AURA: { address: AURA },
-    ETH: { address: ETH },
-    arbUSDCe: { address: arbUSDCe },
-    USDC: { address: USDC },
-    ARB: { address: ARB },
+    xDAI: { address: xDAI },
+    USDT: { address: USDT },
+    sDAI: { address: sDAI },
+    wstETH: { address: wstETH },
   },
-} = addressBook.arbitrum;
+} = addressBook.gnosis;
 
-const want = web3.utils.toChecksumAddress("0xF890360473c12d8015DA8DBf7Af11dA87337A065");
+const want = web3.utils.toChecksumAddress("0x06135A9Ae830476d3a941baE9010B63732a055F4");
+const EURe = web3.utils.toChecksumAddress("0xcB444e90D8198415266c6a2724b7900fb12FC56E");
 
 const vaultParams = {
-  mooName: "Moo Aura Arb GHO/USDC/USDT",
-  mooSymbol: "mooAuraArbGHO/USDC/USDT",
+  mooName: "Moo Aura Gnosis stEUR-EURe",
+  mooSymbol: "mooAuraGnosisstEUR-EURe",
   delay: 21600,
 };
 
@@ -30,32 +31,41 @@ const zeroAddress = '0x0000000000000000000000000000000000000000';
 const strategyParams = {
   want: want,
   isAura: true,
-  pid: 70,
+  pid: 22,
   rewardsGauge: zeroAddress,
   balSwapOn: false,
   inputIsComposable: true,
   nativeToInputRoute: [
-    ["0x64541216bafffeec8ea535bb71fbc927831d0595000100000000000000000002", 0, 1],
-    ["0x423a1323c871abc9d89eb06855bf5347048fc4a5000000000000000000000496", 1, 2],
-    ["0xf890360473c12d8015da8dbf7af11da87337a065000000000000000000000570", 2, 3],
+    ["0x2086f52651837600180de173b09470f54ef7491000000000000000000000004f", 0, 1],
+    ["0xfc095c811fe836ed12f247bcf042504342b73fb700000000000000000000009f", 1, 2],
+    ["0xdd439304a77f54b1f7854751ac1169b279591ef7000000000000000000000064", 2, 3],
+    ["0x06135a9ae830476d3a941bae9010b63732a055f4000000000000000000000065", 3, 4],
   ],
-  outputToNativeRoute: [["0xcc65a812ce382ab909a11e434dbf75b34f1cc59d000200000000000000000001", 0, 1]],
-  nativeToInput: [ETH, arbUSDCe, USDC, want],
-  outputToNative: [BAL, ETH],
-  unirouter: balancer.router,
+  outputToNativeRoute: [
+    ["0x00df7f58e1cf932ebe5f54de5970fb2bdf0ef06d00010000000000000000005b", 0, 1],
+    ["0xbc2acf5e821c5c9f8667a36bb1131dad26ed64f9000200000000000000000063", 1, 2],
+    ["0xfc095c811fe836ed12f247bcf042504342b73fb700000000000000000000009f", 2, 3],
+    ["0x2086f52651837600180de173b09470f54ef7491000000000000000000000004f", 3, 4],
+  ],
+  nativeToInput: [xDAI, USDT, sDAI, EURe, want],
+  outputToNative: [BAL, wstETH, sDAI, USDT, xDAI],
+  unirouter: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
   strategist: process.env.STRATEGIST_ADDRESS,
   keeper: beefyfinance.keeper,
   beefyFeeRecipient: beefyfinance.beefyFeeRecipient,
   beefyFeeConfig: beefyfinance.beefyFeeConfig,
   beefyVaultProxy: beefyfinance.vaultFactory,
-  strategyImplementation: "0xA13FA08c6A0fD2BC26EBd8af9cb684EA9bd49Bfc",
+  strategyImplementation: "0x64D02377e3A28141c4E4663dC7F107dE010D4369",
   extraReward: true,
-  secondExtraReward: true,
-  rewardAssets: [AURA, ETH],
+  secondExtraReward: false,
+  rewardAssets: [AURA, wstETH, sDAI, USDT, xDAI],
   rewardRoute: [
-    ["0x64abeae398961c10cbb50ef359f1db41fc3129ff000200000000000000000526", 0, 1],
+    ["0x00df7f58e1cf932ebe5f54de5970fb2bdf0ef06d00010000000000000000005b", 0, 1],
+    ["0xbc2acf5e821c5c9f8667a36bb1131dad26ed64f9000200000000000000000063", 1, 2],
+    ["0xfc095c811fe836ed12f247bcf042504342b73fb700000000000000000000009f", 2, 3],
+    ["0x2086f52651837600180de173b09470f54ef7491000000000000000000000004f", 3, 4],
   ],
-  secondRewardAssets: [ARB, ETH],
+  secondRewardAssets: [],
 };
 
 async function main() {
@@ -145,20 +155,6 @@ async function main() {
     stratInitTx.status === 1
       ? console.log(`AURA Reward Added with tx: ${stratInitTx.transactionHash}`)
       : console.log(`AURA Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
-  }
-
-  if (strategyParams.secondExtraReward) {
-    stratInitTx = await stratContract.addRewardToken(
-      strategyParams.secondRewardAssets[0],
-      [["0x0000000000000000000000000000000000000000000000000000000000000000", 0, 1]],
-      ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"],
-      ethers.utils.solidityPack(["address", "uint24", "address"], [ARB, 500, ETH]),
-      100
-    );
-    stratInitTx = await stratInitTx.wait();
-    stratInitTx.status === 1
-      ? console.log(`ARB Reward Added with tx: ${stratInitTx.transactionHash}`)
-      : console.log(`ARB Reward Addition failed with tx: ${stratInitTx.transactionHash}`);
   }
 }
 

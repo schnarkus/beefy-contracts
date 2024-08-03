@@ -66,7 +66,7 @@ const config: DeploymentConfig = {
       accounts,
     },
     arbitrum: {
-      url: process.env.ARBITRUM_RPC || "https://arbitrum.blockpi.network/v1/rpc/public",
+      url: process.env.ARBITRUM_RPC || "https://arb-mainnet.g.alchemy.com/v2/14ral7kjsw8t7fug8i6u8r34ggo6b0fn",
       chainId: 42161,
       accounts,
     },
@@ -161,9 +161,9 @@ const config: DeploymentConfig = {
       chainId: 59144,
       accounts,
     },
-    anvil: {
-      url: process.env.FORK_URL,
-      chainId: 137,
+    gnosis: {
+      url: process.env.GNOSIS_RPC || "https://rpc.gnosischain.com",
+      chainId: 100,
       accounts,
     },
   },
@@ -182,6 +182,7 @@ const config: DeploymentConfig = {
       moonbeam: process.env.MOONBEAM_API_KEY!,
       opera: process.env.FANTOM_API_KEY!,
       arbitrumOne: process.env.ARB_API_KEY!,
+      gnosis: process.env.GNOSIS_API_KEY!,
     },
     customChains: [
       {
@@ -222,6 +223,14 @@ const config: DeploymentConfig = {
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org/",
+        },
+      },
+      {
+        network: "gnosis",
+        chainId: 100,
+        urls: {
+          apiURL: "https://api.gnosisscan.io/api",
+          browserURL: "https://gnosisscan.io/",
         },
       },
     ],
